@@ -3,8 +3,8 @@ import { ApiClient } from '../api/client';
 import { TigerSummary, CameraStation, AlertItem } from '../types';
 import { ReserveMap } from '../components/map/ReserveMap';
 import { 
-  FolderUp, Cat, AlertOctagon, Camera, ShieldCheck, 
-  CloudSun, Activity, TrendingUp, ArrowUpRight, Zap
+  FolderUp, Cat, AlertOctagon, Camera, CheckSquare, 
+  CloudSun, ArrowUpRight, Shield, Layers, Radio
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -18,7 +18,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [weather, setWeather] = useState<any>(null);
   const [gisData, setGisData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,9 +37,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         setWeather(weatherRes?.data);
         setGisData(gisRes?.data);
       } catch (err) {
-        console.error('Error fetching dashboard data', err);
-      } finally {
-        setIsLoading(false);
+        console.error('Error loading dashboard data', err);
       }
     };
     fetchData();
@@ -49,212 +46,217 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const totalTrapNights = stations.reduce((acc, s) => acc + (s.active_trap_nights || 0), 0);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Top Banner & Quick Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-forest-950/60 p-5 rounded-2xl border border-slate-800 shadow-xl">
+    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
+      {/* Top Field Operations Header & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#111827] p-4 rounded-lg border border-[#233044]">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              Pench Tiger Reserve Field Command
+            <h2 className="text-base font-semibold text-slate-100">
+              Pench Tiger Reserve — Monitoring & Triage Dashboard
             </h2>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
-            Automated camera trap triage, individual tiger re-identification, and survey-effort normalized movement intelligence.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Phase-IV National Tiger Monitoring Protocol • Turia, Karmajhiri, Jamtara & Gumtara Beats
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => onNavigate('ingestion')}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-emerald-950 flex items-center gap-2"
+            className="px-3 py-1.5 bg-[#1b3d2b] hover:bg-[#234e37] text-emerald-300 border border-[#2d6144] text-xs font-semibold rounded transition flex items-center gap-2"
           >
-            <FolderUp className="w-4 h-4" />
+            <FolderUp className="w-4 h-4 text-emerald-400" />
             <span>Ingest SD Card</span>
           </button>
           <button
             onClick={() => onNavigate('review')}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-xl transition border border-slate-700 flex items-center gap-2"
+            className="px-3 py-1.5 bg-[#1e293b] hover:bg-[#28384f] text-slate-200 border border-[#334155] text-xs font-semibold rounded transition flex items-center gap-2"
           >
-            <ShieldCheck className="w-4 h-4 text-amber-400" />
-            <span>Human Review Queue</span>
+            <CheckSquare className="w-4 h-4 text-amber-400" />
+            <span>Review Studio (2)</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Total Captures */}
-        <div className="glass-panel p-4 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Captures</span>
-            <Camera className="w-4 h-4 text-emerald-400" />
+      {/* Structured Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* Total Ingested */}
+        <div className="field-card p-3.5 space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span>Total Camera Traps</span>
+            <Camera className="w-3.5 h-3.5 text-slate-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-100">
+          <div className="text-xl font-bold text-slate-100 tabular-nums">
             {stats?.total_images ?? 128}
           </div>
-          <div className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
-            <span>{stats?.triaged_images ?? 98} Triaged Active</span>
+          <div className="text-[11px] text-slate-400">
+            {stats?.triaged_images ?? 98} verified captures
           </div>
         </div>
 
-        {/* Quarantined Blanks */}
-        <div className="glass-panel p-4 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Quarantine Rate</span>
-            <ShieldCheck className="w-4 h-4 text-amber-400" />
+        {/* Quarantine Vault */}
+        <div className="field-card p-3.5 space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span>Quarantine Rate</span>
+            <span className="text-[10px] text-amber-400 font-mono">Zero Loss</span>
           </div>
-          <div className="text-2xl font-bold text-slate-100">
+          <div className="text-xl font-bold text-slate-100 tabular-nums">
             {stats?.quarantine_rate_pct ?? '24.2'}%
           </div>
-          <div className="text-xs text-slate-400 flex items-center gap-1">
-            <span>{stats?.storage_saved_mb ?? 135} MB storage saved</span>
+          <div className="text-[11px] text-slate-400">
+            {stats?.quarantined_images ?? 30} blank images preserved
           </div>
         </div>
 
         {/* Identified Tigers */}
-        <div className="glass-panel p-4 rounded-2xl space-y-2 cursor-pointer hover:border-emerald-500/40 transition" onClick={() => onNavigate('catalogue')}>
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Identified Tigers</span>
-            <Cat className="w-4 h-4 text-amber-500" />
+        <div 
+          onClick={() => onNavigate('catalogue')}
+          className="field-card-interactive p-3.5 space-y-1 cursor-pointer"
+        >
+          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span>Identified Tigers</span>
+            <Cat className="w-3.5 h-3.5 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-100">
+          <div className="text-xl font-bold text-amber-400 tabular-nums">
             {tigers.length || 7} Individuals
           </div>
-          <div className="text-xs text-amber-400 flex items-center gap-1 font-medium">
-            <span>6 Resident • 1 Provisional</span>
+          <div className="text-[11px] text-slate-400">
+            6 Resident • 1 Provisional
           </div>
         </div>
 
-        {/* Active Alerts */}
-        <div className="glass-panel p-4 rounded-2xl space-y-2 cursor-pointer hover:border-rose-500/40 transition" onClick={() => onNavigate('alerts')}>
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Alerts</span>
-            <AlertOctagon className="w-4 h-4 text-rose-500" />
+        {/* Active Movement Alerts */}
+        <div 
+          onClick={() => onNavigate('alerts')}
+          className="field-card-interactive p-3.5 space-y-1 cursor-pointer"
+        >
+          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span>Movement Alerts</span>
+            <AlertOctagon className="w-3.5 h-3.5 text-rose-400" />
           </div>
-          <div className="text-2xl font-bold text-rose-400">
+          <div className="text-xl font-bold text-rose-400 tabular-nums">
             {alerts.length || 2} Active
           </div>
-          <div className="text-xs text-rose-300/80 flex items-center gap-1">
-            <span>1 Critical Village Fringe</span>
+          <div className="text-[11px] text-slate-400">
+            1 Village Fringe Incursion
           </div>
         </div>
 
         {/* Survey Effort */}
-        <div className="glass-panel p-4 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Survey Effort</span>
-            <Activity className="w-4 h-4 text-purple-400" />
+        <div className="field-card p-3.5 space-y-1">
+          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span>Survey Effort</span>
+            <span className="text-[10px] text-emerald-400 font-mono">Active Grid</span>
           </div>
-          <div className="text-2xl font-bold text-slate-100">
-            {totalTrapNights || 1280}
+          <div className="text-xl font-bold text-slate-100 tabular-nums">
+            {totalTrapNights || 1280} <span className="text-xs font-normal text-slate-400">nights</span>
           </div>
-          <div className="text-xs text-purple-400 font-medium">
-            <span>{stations.length || 16} Operational Stations</span>
+          <div className="text-[11px] text-slate-400">
+            Across {stations.length || 16} deployed stations
           </div>
         </div>
       </div>
 
-      {/* Main Content Grid: Map + Side Intelligence Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Interactive Reserve Map */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-4 flex flex-col h-[520px]">
-          <div className="flex items-center justify-between mb-3 px-1">
+      {/* Main Split Content: Reserve Map & Operational Alert Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Left 2 Cols: Reserve GIS Map */}
+        <div className="lg:col-span-2 field-card p-3.5 flex flex-col h-[520px]">
+          <div className="flex items-center justify-between mb-2 px-1">
             <div>
-              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide">
-                Pench Reserve Intelligence Map
+              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wide">
+                Pench Reserve Geospatial Monitoring
               </h3>
-              <p className="text-xs text-slate-400">
-                Core & Buffer Boundaries • Camera Stations • Tiger Home Ranges • Live Alerts
+              <p className="text-[11px] text-slate-400">
+                Core Sanctuary Boundaries • Buffer Zones • Station Telemetry • Tiger Centroids
               </p>
             </div>
             <button
               onClick={() => onNavigate('map')}
               className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
             >
-              <span>Full Screen GIS</span>
+              <span>Expand Full GIS</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="flex-1 w-full rounded-xl overflow-hidden">
+          <div className="flex-1 w-full rounded border border-[#233044] overflow-hidden">
             <ReserveMap
               stations={stations}
               tigers={tigers}
               alerts={alerts}
               gisData={gisData}
-              onSelectStation={(st) => onNavigate('stations')}
-              onSelectTiger={(tid) => onNavigate('catalogue')}
+              onSelectStation={() => onNavigate('stations')}
+              onSelectTiger={() => onNavigate('catalogue')}
             />
           </div>
         </div>
 
-        {/* Right 1 Col: Live Alert Feed & Local Weather Intelligence */}
+        {/* Right 1 Col: Actionable Alert Feed & IMD Telemetry */}
         <div className="space-y-4 flex flex-col">
-          {/* Active Alerts Panel */}
-          <div className="glass-panel p-4 rounded-2xl flex-1 flex flex-col">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-200">
+          {/* Priority Alerts Ledger */}
+          <div className="field-card p-3.5 flex-1 flex flex-col">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#233044]">
+              <div className="flex items-center gap-2">
                 <AlertOctagon className="w-4 h-4 text-rose-400" />
-                <span>Priority Movement Alerts</span>
+                <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wide">
+                  Active Movement Alerts
+                </h3>
               </div>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800">
-                {alerts.length} Active
+              <span className="text-[10px] font-mono text-rose-400 bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800/40">
+                {alerts.length} Incidents
               </span>
             </div>
 
-            <div className="space-y-3 overflow-y-auto max-h-56 pr-1">
+            <div className="space-y-2.5 overflow-y-auto max-h-56 pr-1 text-xs">
               {alerts.map((al) => (
                 <div
                   key={al.id}
                   onClick={() => onNavigate('alerts')}
-                  className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-rose-500/40 transition cursor-pointer space-y-1.5"
+                  className="p-2.5 rounded bg-[#0b111e] border border-[#233044] hover:border-[#384860] transition cursor-pointer space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-200">{al.callsign} ({al.tiger_code})</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      al.severity === 'CRITICAL' ? 'bg-rose-900/90 text-rose-200' : 'bg-amber-900/90 text-amber-200'
+                    <span className="font-semibold text-slate-200">{al.callsign} ({al.tiger_code})</span>
+                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                      al.severity === 'CRITICAL' ? 'bg-rose-900/60 text-rose-300 border border-rose-700' : 'bg-amber-900/60 text-amber-300 border border-amber-700'
                     }`}>
                       {al.severity}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 line-clamp-2">
+                  <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
                     {al.explanation.what_changed}
                   </p>
-                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-900">
-                    <span>Effort: {al.explanation.survey_effort}</span>
-                    <span className="text-emerald-400 font-semibold">{intPercent(al.confidence)}% Confidence</span>
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-[#162032]">
+                    <span>Effort Context: {al.explanation.survey_effort}</span>
+                    <span className="text-emerald-400 font-mono">{Math.round(al.confidence * 100)}% match</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Local Weather & Habitat Telemetry (External Adapter Cache) */}
+          {/* Meteorological Cache Widget */}
           {weather && (
-            <div className="glass-panel p-4 rounded-2xl space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300 uppercase tracking-wide">
+            <div className="field-card p-3.5 space-y-2 text-xs">
+              <div className="flex items-center justify-between text-slate-300 font-semibold">
                 <div className="flex items-center gap-1.5">
-                  <CloudSun className="w-4 h-4 text-amber-400" />
-                  <span>Pench Weather & Telemetry</span>
+                  <CloudSun className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Pench Weather Telemetry</span>
                 </div>
-                <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">Cached Offline</span>
+                <span className="text-[10px] font-mono text-slate-400 bg-[#0b111e] px-1.5 py-0.5 rounded">Turia AWS</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <span className="text-slate-400">Temperature</span>
-                  <div className="text-base font-bold text-slate-200">{weather.temperature_c}°C</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-[#0b111e] p-2 rounded border border-[#233044]">
+                  <span className="text-slate-400 text-[10px]">Ambient Temp</span>
+                  <div className="text-sm font-bold text-slate-200 mt-0.5">{weather.temperature_c}°C</div>
                 </div>
-                <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <span className="text-slate-400">Humidity</span>
-                  <div className="text-base font-bold text-slate-200">{weather.humidity_pct}%</div>
-                </div>
-                <div className="col-span-2 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <span className="text-slate-400">Moon Phase (Night Camera Trap Impact)</span>
-                  <div className="text-xs font-semibold text-emerald-400 mt-0.5">{weather.moon_phase}</div>
+                <div className="bg-[#0b111e] p-2 rounded border border-[#233044]">
+                  <span className="text-slate-400 text-[10px]">Relative Humidity</span>
+                  <div className="text-sm font-bold text-slate-200 mt-0.5">{weather.humidity_pct}%</div>
                 </div>
               </div>
-              <div className="text-[10px] text-slate-400 truncate">
-                {weather.source}
+              <div className="bg-[#0b111e] p-2 rounded border border-[#233044] text-[11px]">
+                <span className="text-slate-400">Lunar Illumination:</span>
+                <span className="text-emerald-400 font-medium ml-1.5">{weather.moon_phase}</span>
               </div>
             </div>
           )}
@@ -263,8 +265,3 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     </div>
   );
 };
-
-function intPercent(val?: number) {
-  if (!val) return 90;
-  return Math.round(val * 100);
-}

@@ -1,90 +1,112 @@
-import React from 'react';
-import { FileSpreadsheet, Download, FileText, CheckCircle2, Shield, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { ApiClient } from '../api/client';
+import { FileSpreadsheet, Download, Check } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
-  const handleDownload = (endpoint: string) => {
-    window.open(`http://localhost:8000/api/v1/reports/${endpoint}`, '_blank');
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const handleDownload = async (type: string, filename: string) => {
+    setDownloading(type);
+    try {
+      let csvContent = '';
+      if (type === 'tigers') {
+        csvContent = await ApiClient.exportTigersCSV();
+      } else if (type === 'alerts') {
+        csvContent = await ApiClient.exportAlertsCSV();
+      } else if (type === 'effort') {
+        csvContent = await ApiClient.exportEffortCSV();
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      alert(`Export error: ${err.message}`);
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const reports = [
     {
       id: 'tigers',
-      title: 'Tiger Individual Census & Catalogue Report',
-      description: 'Complete census record of resident, transient, and provisional individuals including sex, territory size, and flank stripe confidence.',
-      format: 'CSV / Excel Compatible',
-      endpoint: 'tigers/csv',
-      icon: '🐅'
+      title: 'Individual Tiger Registry & Flank Sighting Ledger',
+      description: 'Comprehensive table of all resident, transient, and provisional individuals, bilateral flank capture counts, and home-range area (MCP 95%).',
+      filename: `pench_tiger_registry_${new Date().toISOString().split('T')[0]}.csv`,
+      badge: 'NTCA Phase-IV Format',
     },
     {
       id: 'alerts',
-      title: 'Movement Deviations & Ecological Alerts Log',
-      description: 'Historical audit log of all buffer zone incursions, village boundary proximities, territory centroid shifts, and survey-effort contexts.',
-      format: 'CSV / Excel Compatible',
-      endpoint: 'alerts/csv',
-      icon: '🚨'
+      title: 'Ecological Movement Deviations & Alert Log',
+      description: 'Record of all generated buffer zone incursions, village boundary proximity alerts, survey-effort metrics, and patrol resolution notes.',
+      filename: `pench_movement_alerts_${new Date().toISOString().split('T')[0]}.csv`,
+      badge: 'Incident Log',
     },
     {
-      id: 'survey',
-      title: 'Camera Trap Survey Effort & Trap-Nights Protocol',
-      description: 'Phase-IV monitoring protocol audit of active trap nights, deployment operational days, and downtime logs across all reserve stations.',
-      format: 'CSV / Excel Compatible',
-      endpoint: 'survey-effort/csv',
-      icon: '📷'
+      id: 'effort',
+      title: 'Camera Trap Survey Effort & Trap-Night Ledger',
+      description: 'Station-by-station deployment records, operational dates, active trap-night totals, downtime days, and cumulative captures.',
+      filename: `pench_survey_effort_${new Date().toISOString().split('T')[0]}.csv`,
+      badge: 'Survey Matrix',
     },
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Title */}
-      <div className="pb-4 border-b border-slate-800">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2.5">
-          <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
-          <span>Scientific Reports & Field Data Export</span>
+    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
+      {/* Header */}
+      <div className="pb-3 border-b border-[#233044]">
+        <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+          <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+          <span>Statutory Reports & Data Export Portal</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1">
-          Export standardized wildlife monitoring datasets, tiger identification registries, and patrol audit records for National Tiger Conservation Authority (NTCA) reporting.
+        <p className="text-xs text-slate-400 mt-0.5">
+          Generate and export official NTCA-standard CSV reports for tiger census verification, patrol audits, and camera trap effort matrices.
         </p>
       </div>
 
-      {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Report Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {reports.map((r) => (
-          <div
-            key={r.id}
-            className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-4 hover:border-emerald-500/40 transition shadow-xl"
-          >
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center text-2xl border border-slate-850">
-                {r.icon}
+          <div key={r.id} className="field-card p-4 space-y-3 flex flex-col justify-between text-xs">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-emerald-400 bg-[#162032] px-2 py-0.5 rounded border border-[#233044]">
+                  {r.badge}
+                </span>
+                <span className="text-slate-400 font-mono text-[10px]">CSV</span>
               </div>
-              <h3 className="text-sm font-bold text-slate-100">{r.title}</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">{r.description}</p>
+              <h3 className="font-bold text-slate-100 text-sm leading-snug">
+                {r.title}
+              </h3>
+              <p className="text-slate-400 text-[11px] leading-relaxed">
+                {r.description}
+              </p>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 space-y-3">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span>Format: <strong>{r.format}</strong></span>
-                <span className="text-emerald-400 font-semibold">NTCA Ready</span>
-              </div>
+            <div className="pt-3 border-t border-[#1a2537] flex items-center justify-between">
+              <span className="text-[10px] font-mono text-slate-400 truncate max-w-[160px]">{r.filename}</span>
               <button
-                onClick={() => handleDownload(r.endpoint)}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950"
+                onClick={() => handleDownload(r.id, r.filename)}
+                disabled={downloading === r.id}
+                className="px-3 py-1.5 bg-[#1b3d2b] hover:bg-[#234e37] text-emerald-200 text-xs font-semibold rounded border border-[#2d6144] transition flex items-center gap-1.5"
               >
-                <Download className="w-4 h-4" />
-                <span>Export Dataset (.CSV)</span>
+                {downloading === r.id ? (
+                  <span>Exporting...</span>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download CSV</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* NTCA Protocol Compliance Badge */}
-      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center gap-4 text-xs text-slate-400">
-        <Shield className="w-6 h-6 text-emerald-400 shrink-0" />
-        <div>
-          <span className="text-slate-200 font-bold block">NTCA / WII Protocol Standard Compliant</span>
-          All data schemas strictly follow the National Tiger Monitoring Program Phase-IV camera-trapping guidelines.
-        </div>
       </div>
     </div>
   );

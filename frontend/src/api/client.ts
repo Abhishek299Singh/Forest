@@ -44,6 +44,20 @@ export class ApiClient {
     return response.json();
   }
 
+  private static async requestText(endpoint: string): Promise<string> {
+    const headers: Record<string, string> = {};
+    const token = this.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${BASE_URL}${endpoint}`, { headers });
+    if (!response.ok) {
+      throw new Error('Failed to fetch report data');
+    }
+    return response.text();
+  }
+
   // Auth
   static async login(credentials: { email: string; password: string }) {
     return this.request<any>('/auth/login', {
@@ -197,12 +211,29 @@ export class ApiClient {
     });
   }
 
+  static async getOutbox() {
+    return this.request<any[]>('/sync/outbox');
+  }
+
   static async getOutboxItems() {
     return this.request<any[]>('/sync/outbox');
   }
 
   static async getSyncLogs() {
     return this.request<any[]>('/sync/logs');
+  }
+
+  // Reports
+  static async exportTigersCSV() {
+    return this.requestText('/reports/tigers/csv');
+  }
+
+  static async exportAlertsCSV() {
+    return this.requestText('/reports/alerts/csv');
+  }
+
+  static async exportEffortCSV() {
+    return this.requestText('/reports/effort/csv');
   }
 
   // External

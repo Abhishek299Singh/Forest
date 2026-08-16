@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { AlertItem } from '../types';
-import { 
-  AlertOctagon, ShieldAlert, CheckCircle2, UserCheck, 
-  HelpCircle, RefreshCw, Filter, Search, ChevronRight, Eye, FileText
-} from 'lucide-react';
+import { AlertOctagon, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 export const AlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -13,7 +10,6 @@ export const AlertsPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const loadAlerts = async () => {
     try {
@@ -25,9 +21,7 @@ export const AlertsPage: React.FC = () => {
       if (data.length > 0 && !selectedAlert) {
         setSelectedAlert(data[0]);
       }
-    } catch (_) {} finally {
-      setIsLoading(false);
-    }
+    } catch (_) {}
   };
 
   useEffect(() => {
@@ -48,7 +42,7 @@ export const AlertsPage: React.FC = () => {
     setIsScanning(true);
     try {
       const res = await ApiClient.scanAbsences();
-      alert(`Absence scan completed: ${res.new_alerts_count} new absence alerts identified.`);
+      alert(`Absence audit completed: ${res.new_alerts_count} absence notifications recorded.`);
       loadAlerts();
     } catch (err: any) {
       alert(err.message);
@@ -58,70 +52,68 @@ export const AlertsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Top Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
+      {/* Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#233044]">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2.5">
-            <AlertOctagon className="w-6 h-6 text-rose-500" />
-            <span>Survey-Effort Normalized Movement Alerts</span>
+          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+            <AlertOctagon className="w-5 h-5 text-rose-500" />
+            <span>Survey-Effort Normalized Movement Alert Ledger</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Detects core-to-buffer movements, village proximity incursions, centroid shifts, and prolonged resident absences.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Automated detection of buffer zone incursions, village fringe proximities, territory shifts, and resident tiger absences.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 text-xs">
           <button
             onClick={handleScanAbsences}
             disabled={isScanning}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 border border-slate-700"
+            className="px-3 py-1.5 bg-[#1e293b] hover:bg-[#28384f] text-slate-200 rounded border border-[#334155] transition flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-            <span>Scan Prolonged Absences</span>
+            <span>Audit Absence Days</span>
           </button>
 
-          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500"
+            className="bg-[#0b111e] border border-[#233044] text-slate-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
           >
-            <option value="all">All Statuses</option>
+            <option value="all">All Incident Statuses</option>
             <option value="active">Active</option>
-            <option value="investigating">Investigating</option>
+            <option value="investigating">Patrol Dispatched</option>
             <option value="acknowledged">Acknowledged</option>
             <option value="resolved">Resolved</option>
           </select>
 
-          {/* Severity Filter */}
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500"
+            className="bg-[#0b111e] border border-[#233044] text-slate-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
           >
             <option value="all">All Severities</option>
-            <option value="CRITICAL">Critical</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
+            <option value="CRITICAL">Critical Priority</option>
+            <option value="HIGH">High Priority</option>
+            <option value="MEDIUM">Medium Priority</option>
           </select>
         </div>
       </div>
 
       {alerts.length === 0 ? (
-        <div className="glass-panel p-12 rounded-2xl text-center text-slate-400 space-y-2">
-          <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
-          <h3 className="text-base font-bold text-slate-200">No Active Movement Alerts</h3>
-          <p className="text-xs">All individual tigers are within expected baseline territories.</p>
+        <div className="field-card p-10 text-center text-slate-400 text-xs space-y-1">
+          <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+          <p className="font-semibold text-slate-200">No Active Movement Alerts</p>
+          <p>All resident individuals are within historical baseline ranges.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left 1 Col: Alerts Feed List */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              Alert Ticker ({alerts.length})
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Left 1 Col: Alert Ledger */}
+          <div className="space-y-2 text-xs">
+            <h3 className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">
+              Alerts Ledger ({alerts.length})
             </h3>
-            <div className="space-y-2.5 max-h-[700px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-[700px] overflow-y-auto pr-1">
               {alerts.map((al) => {
                 const isSelected = selectedAlert?.id === al.id;
                 const isCrit = al.severity === 'CRITICAL';
@@ -129,15 +121,15 @@ export const AlertsPage: React.FC = () => {
                   <div
                     key={al.id}
                     onClick={() => setSelectedAlert(al)}
-                    className={`p-3.5 rounded-2xl border transition cursor-pointer space-y-2 ${
+                    className={`p-3 rounded border transition cursor-pointer space-y-1.5 ${
                       isSelected
-                        ? 'bg-slate-900 border-rose-500/80 shadow-lg'
-                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                        ? 'bg-[#1b2536] border-rose-500/70'
+                        : 'bg-[#121a29] border-[#233044] hover:bg-[#162236]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                        isCrit ? 'bg-rose-900/90 text-rose-200' : 'bg-amber-900/90 text-amber-200'
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                        isCrit ? 'bg-rose-900/60 text-rose-300 border border-rose-700' : 'bg-amber-900/60 text-amber-300 border border-amber-700'
                       }`}>
                         {al.severity} • {al.alert_type.replace(/_/g, ' ').toUpperCase()}
                       </span>
@@ -147,15 +139,15 @@ export const AlertsPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <div className="text-xs font-bold text-slate-100">{al.callsign} ({al.tiger_code})</div>
-                      <p className="text-[11px] text-slate-300 line-clamp-2 mt-1">
+                      <div className="font-bold text-slate-100">{al.callsign} ({al.tiger_code})</div>
+                      <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-relaxed">
                         {al.explanation.what_changed}
                       </p>
                     </div>
 
-                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-900">
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-[#1a2537]">
                       <span>Status: <strong className="text-slate-200 capitalize">{al.status}</strong></span>
-                      <span className="text-emerald-400 font-semibold">{Math.round(al.confidence * 100)}% Conf.</span>
+                      <span className="text-emerald-400 font-mono">{Math.round(al.confidence * 100)}% match</span>
                     </div>
                   </div>
                 );
@@ -163,120 +155,106 @@ export const AlertsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right 2 Cols: Comprehensive Explainability Evidence Panel */}
+          {/* Right 2 Cols: Scientific Explainability & Patrol Action Card */}
           {selectedAlert && (
-            <div className="lg:col-span-2 glass-panel p-6 rounded-2xl space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold ${
-                    selectedAlert.severity === 'CRITICAL' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                  }`}>
-                    ⚠️
+            <div className="lg:col-span-2 field-card p-4 space-y-4 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-[#233044]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-100">{selectedAlert.callsign}</h3>
+                    <span className="font-mono text-amber-400 text-xs">({selectedAlert.tiger_code})</span>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-100">{selectedAlert.callsign}</h3>
-                      <span className="text-xs font-mono text-amber-400">({selectedAlert.tiger_code})</span>
-                    </div>
-                    <span className="text-xs text-slate-400">{selectedAlert.explanation.location} • Status: {selectedAlert.status}</span>
-                  </div>
+                  <span className="text-slate-400 text-[11px]">{selectedAlert.explanation.location} • Status: {selectedAlert.status}</span>
                 </div>
 
-                <span className={`text-xs font-bold px-3 py-1 rounded-xl ${
-                  selectedAlert.severity === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border border-rose-600' : 'bg-amber-950 text-amber-300 border border-amber-600'
+                <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                  selectedAlert.severity === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
                 }`}>
                   {selectedAlert.severity} PRIORITY
                 </span>
               </div>
 
-              {/* Explainable AI Cards Grid */}
-              <div className="space-y-3.5">
-                {/* 1. What Changed */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
-                    What Changed
+              {/* Explainability Cards */}
+              <div className="space-y-2.5">
+                <div className="bg-[#0b111e] p-3 rounded border border-[#233044] space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                    1. Observed Movement Deviation
                   </span>
-                  <p className="text-xs text-slate-200 leading-relaxed">
+                  <p className="text-slate-200 leading-relaxed">
                     {selectedAlert.explanation.what_changed}
                   </p>
                 </div>
 
-                {/* 2. Why It Matters */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400">
-                    Why It Matters
+                <div className="bg-[#0b111e] p-3 rounded border border-[#233044] space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">
+                    2. Ecological & Conflict Significance
                   </span>
-                  <p className="text-xs text-slate-200 leading-relaxed">
+                  <p className="text-slate-200 leading-relaxed">
                     {selectedAlert.explanation.why_it_matters}
                   </p>
                 </div>
 
-                {/* 3. Supporting Evidence */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                    Supporting Sighting Evidence
+                <div className="bg-[#0b111e] p-3 rounded border border-[#233044] space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                    3. Supporting Camera Trap Evidence
                   </span>
-                  <p className="text-xs text-slate-200 leading-relaxed">
+                  <p className="text-slate-200 leading-relaxed">
                     {selectedAlert.explanation.supporting_evidence}
                   </p>
                 </div>
 
-                {/* 4. Survey Effort Normalization Context */}
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-400">
-                      Camera Trap Survey Effort Context
-                    </span>
-                    <span className="text-[10px] text-slate-400">Normalized Protocol</span>
-                  </div>
-                  <p className="text-xs text-slate-200 leading-relaxed">
+                <div className="bg-[#0b111e] p-3 rounded border border-[#233044] space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
+                    4. Survey Effort Baseline Context
+                  </span>
+                  <p className="text-slate-200 leading-relaxed">
                     {selectedAlert.explanation.survey_effort}.
                     {selectedAlert.explanation.is_effort_artifact && (
                       <span className="text-amber-400 font-medium ml-1">
-                        (Note: Camera was deployed &lt;14 days ago; apparent expansion may reflect new camera grid placement).
+                        (Camera deployed &lt;14 days ago; change may reflect new trap placement).
                       </span>
                     )}
                   </p>
                 </div>
               </div>
 
-              {/* Action & Resolution Workflow */}
-              <div className="pt-4 border-t border-slate-800 space-y-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Patrol Response / Resolution Notes
+              {/* Patrol Actions */}
+              <div className="pt-3 border-t border-[#233044] space-y-2.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">
+                    Patrol Response / Incident Resolution Log
                   </label>
                   <input
                     type="text"
                     value={resolutionNotes}
                     onChange={(e) => setResolutionNotes(e.target.value)}
-                    placeholder="e.g., Turia forest guard patrol deployed to village boundary. Villagers informed."
-                    className="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500"
+                    placeholder="e.g. Range patrol dispatched to Turia buffer border. Livestock advisory issued."
+                    className="w-full bg-[#0b111e] border border-[#233044] text-slate-100 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-500 font-sans"
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-2.5 pt-1">
+                <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     onClick={() => handleUpdateStatus(selectedAlert.id, 'acknowledged')}
-                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition border border-slate-700"
+                    className="px-3 py-1.5 bg-[#1e293b] hover:bg-[#28384f] text-slate-200 text-xs rounded border border-[#334155] transition"
                   >
-                    Acknowledge Alert
+                    Acknowledge
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(selectedAlert.id, 'investigating')}
-                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-xl transition"
+                    className="px-3 py-1.5 bg-[#3d2c12] hover:bg-[#523c1a] text-amber-300 text-xs rounded border border-[#61471b] transition"
                   >
-                    Deploy Patrol & Investigate
+                    Dispatch Patrol
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(selectedAlert.id, 'resolved')}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition"
+                    className="px-3 py-1.5 bg-[#1b3d2b] hover:bg-[#234e37] text-emerald-200 text-xs rounded border border-[#2d6144] transition"
                   >
-                    Mark Resolved
+                    Resolve Incident
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(selectedAlert.id, 'dismissed')}
-                    className="px-3.5 py-2 bg-slate-950 text-slate-400 hover:text-slate-200 text-xs rounded-xl transition border border-slate-800 ml-auto"
+                    className="px-3 py-1.5 bg-[#0b111e] text-slate-400 hover:text-slate-200 text-xs rounded border border-[#233044] ml-auto transition"
                   >
                     Dismiss
                   </button>
