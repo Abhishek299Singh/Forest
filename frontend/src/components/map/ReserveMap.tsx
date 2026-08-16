@@ -9,6 +9,7 @@ interface ReserveMapProps {
   alerts?: AlertItem[];
   gisData?: any;
   selectedTigerId?: string | null;
+  focusCoordinates?: [number, number] | null; // [lon, lat]
   onSelectStation?: (station: CameraStation) => void;
   onSelectTiger?: (tigerId: string) => void;
 }
@@ -19,6 +20,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
   alerts = [],
   gisData,
   selectedTigerId,
+  focusCoordinates,
   onSelectStation,
   onSelectTiger,
 }) => {
@@ -156,6 +158,27 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
       map.remove();
     };
   }, [gisData]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (focusCoordinates && focusCoordinates[0] != null && focusCoordinates[1] != null) {
+      map.flyTo({
+        center: focusCoordinates,
+        zoom: 14,
+        essential: true,
+      });
+    } else if (stations.length > 0) {
+      const validSt = stations.find(s => s.latitude != null && s.longitude != null);
+      if (validSt) {
+        map.flyTo({
+          center: [validSt.longitude, validSt.latitude],
+          zoom: 12.5,
+          essential: true,
+        });
+      }
+    }
+  }, [focusCoordinates, stations]);
 
   useEffect(() => {
     const map = mapRef.current;

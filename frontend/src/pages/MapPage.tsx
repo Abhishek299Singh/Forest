@@ -4,13 +4,21 @@ import { TigerSummary, CameraStation, AlertItem, TerritoryOverlap } from '../typ
 import { ReserveMap } from '../components/map/ReserveMap';
 import { Map, Activity, Layers, MapPin } from 'lucide-react';
 
-export const MapPage: React.FC = () => {
+interface MapPageProps {
+  initialFocus?: { lat?: number; lon?: number; station?: string } | null;
+}
+
+export const MapPage: React.FC<MapPageProps> = ({ initialFocus }) => {
   const [stations, setStations] = useState<CameraStation[]>([]);
   const [tigers, setTigers] = useState<TigerSummary[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [overlaps, setOverlaps] = useState<TerritoryOverlap[]>([]);
   const [gisData, setGisData] = useState<any>(null);
   const [selectedStation, setSelectedStation] = useState<CameraStation | null>(null);
+
+  const focusCoords: [number, number] | null = (initialFocus?.lon != null && initialFocus?.lat != null)
+    ? [initialFocus.lon, initialFocus.lat]
+    : null;
 
   useEffect(() => {
     const loadAll = async () => {
@@ -27,10 +35,15 @@ export const MapPage: React.FC = () => {
         setAlerts(alRes);
         setOverlaps(ovRes);
         setGisData(gisRes?.data);
+
+        if (initialFocus?.station) {
+          const matched = stRes.find((s: CameraStation) => s.code === initialFocus.station);
+          if (matched) setSelectedStation(matched);
+        }
       } catch (_) {}
     };
     loadAll();
-  }, []);
+  }, [initialFocus]);
 
   return (
     <div className="p-4 space-y-3 max-w-[1700px] mx-auto flex flex-col h-[calc(100vh-3.5rem)] text-xs">

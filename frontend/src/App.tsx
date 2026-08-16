@@ -19,19 +19,25 @@ import { SettingsPage } from './pages/SettingsPage';
 
 export function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [mapFocus, setMapFocus] = useState<{ lat?: number; lon?: number; station?: string } | null>(null);
+
+  const handleNavigateToMap = (params?: { lat?: number; lon?: number; station?: string }) => {
+    if (params) setMapFocus(params);
+    setActiveTab('map');
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardPage onNavigate={(tab: string) => setActiveTab(tab)} />;
       case 'ingestion':
-        return <IngestionPage />;
+        return <IngestionPage onNavigateToMap={handleNavigateToMap} />;
       case 'catalogue':
         return <CataloguePage />;
       case 'review':
         return <ReviewPage />;
       case 'map':
-        return <MapPage />;
+        return <MapPage initialFocus={mapFocus} />;
       case 'alerts':
         return <AlertsPage />;
       case 'stations':

@@ -101,6 +101,13 @@ export class ApiClient {
     });
   }
 
+  static async ingestCsvData(csv_content: string, station_id?: string) {
+    return this.request<any>('/triage/ingest-csv-data', {
+      method: 'POST',
+      body: JSON.stringify({ csv_content, station_id }),
+    });
+  }
+
   static async getQuarantined(limit = 50, offset = 0) {
     return this.request<any>(`/triage/quarantine?limit=${limit}&offset=${offset}`);
   }

@@ -22,6 +22,10 @@ class IngestFolderRequest(BaseModel):
     folder_path: str
     station_id: Optional[str] = None
 
+class IngestCsvRequest(BaseModel):
+    csv_content: str
+    station_id: Optional[str] = None
+
 class QuarantineActionRequest(BaseModel):
     image_ids: List[str]
     action: str  # "restore", "confirm_blank", "delete_quarantine_flag"
@@ -77,6 +81,42 @@ async def ingest_folder(
         actor_id=current_user.full_name if current_user else "Field Staff",
         actor_role=current_user.role if current_user else "forest_staff",
         action="sd_card_batch_ingested",
+        entity_type="batch",
+        entity_id=batch_id,
+        details_json=str(report)
+    )
+    db.add(audit)
+    db.commit()
+
+    return report
+
+@router.post("/ingest-csv-data")
+async def ingest_csv_data(
+    req: IngestCsvRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    from datetime import datetime
+    batch_id = f"BATCH-CSV-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+    
+    # Save CSV to temp workspace
+    workspace_dir = settings.BASE_DIR / "workspace" / "batches" / batch_id
+    workspace_dir.mkdir(parents=True, exist_ok=True)
+    csv_file = workspace_dir / "manifest.csv"
+    with open(csv_file, "w", encoding="utf-8") as f:
+        f.write(req.csv_content)
+
+    report = await ingestion_manager.process_batch(
+        db=db,
+        batch_id=batch_id,
+        folder_path=workspace_dir,
+        station_id_override=req.station_id
+    )
+
+    audit = AuditLog(
+        actor_id=current_user.full_name if current_user else "Field Staff",
+        actor_role=current_user.role if current_user else "forest_staff",
+        action="csv_manifest_ingested",
         entity_type="batch",
         entity_id=batch_id,
         details_json=str(report)
