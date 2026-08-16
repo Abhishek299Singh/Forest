@@ -117,4 +117,9 @@ class BlankImageClassifier:
             "model_version": self.model_version
         }
 
+    def classify_image(self, image_path: Path | str) -> Dict[str, Any]:
+        return self.classify(image_path)
+
 blank_classifier = BlankImageClassifier()
+blank_detector = blank_classifier
+

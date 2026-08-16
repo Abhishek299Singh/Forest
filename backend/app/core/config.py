@@ -1,54 +1,63 @@
 import os
+from typing import Optional
 from pathlib import Path
 from pydantic import BaseModel
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = BASE_DIR / "data"
-IMAGES_DIR = DATA_DIR / "images"
-QUARANTINE_DIR = DATA_DIR / "quarantine"
-CROPS_DIR = DATA_DIR / "crops"
-EXPORT_DIR = DATA_DIR / "exports"
-
-for d in [DATA_DIR, IMAGES_DIR, QUARANTINE_DIR, CROPS_DIR, EXPORT_DIR]:
-    d.mkdir(parents=True, exist_ok=True)
-
 class Settings(BaseModel):
-    PROJECT_NAME: str = "Pench Tiger Reserve - Wildlife Intelligence System"
-    VERSION: str = "2.4.0"
+    PROJECT_NAME: str = "Pench Wildlife Intelligence Platform"
+    VERSION: str = "2.5.0"
     API_V1_STR: str = "/api/v1"
     
-    # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "pench_reserve_super_secret_jwt_key_2026_!#@")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days for field laptops
-    
-    # Offline SQLite Database by default, fallback / switchable to PostgreSQL
-    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR}/pench_offline.db")
-    CENTRAL_DATABASE_URL: str = os.getenv("CENTRAL_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/pench_central")
-    
-    # Offline / Device identity
-    DEVICE_ID: str = os.getenv("DEVICE_ID", "PENCH-FIELD-LAPTOP-01")
+    # Mode
     IS_OFFLINE_MODE: bool = True
+    DEVICE_ID: str = "PTR-TURIA-LAPTOP-01"
     
-    # ML & Triage Policy Thresholds (Configurable)
-    BLANK_CONFIDENCE_THRESHOLD: float = 0.70  # >= 0.70 moves to quarantine
-    BLANK_UNCERTAIN_LOWER: float = 0.40       # 0.40 - 0.70 goes to Human Review
-    TIGER_AUTO_MATCH_THRESHOLD: float = 0.85  # >= 0.85 auto assigned
-    TIGER_AMBIGUOUS_THRESHOLD: float = 0.50   # 0.50 - 0.85 goes to Human Review
+    # Database URL
+    DATABASE_URL: str = "sqlite:///data/pench_offline.db"
+    SQLITE_DB_PATH: str = "data/pench_offline.db"
     
-    # Movement & Alert Engine Thresholds (Configurable Policy)
-    CENTROID_SHIFT_THRESHOLD_KM: float = 4.0      # ~15-20 sq km territory shift
-    BUFFER_MOVEMENT_THRESHOLD_KM: float = 3.5     # Movement toward buffer zone
-    VILLAGE_PROXIMITY_THRESHOLD_KM: float = 1.5   # Incursion near human settlements
-    PROLONGED_ABSENCE_DAYS: int = 45              # Resident tiger absence threshold
-    SURVEY_EFFORT_MIN_DAYS: int = 14              # Trap-nights needed to establish baseline
-
-    # Paths
-    BASE_DIR: Path = BASE_DIR
-    DATA_DIR: Path = DATA_DIR
-    IMAGES_DIR: Path = IMAGES_DIR
-    QUARANTINE_DIR: Path = QUARANTINE_DIR
-    CROPS_DIR: Path = CROPS_DIR
-    EXPORT_DIR: Path = EXPORT_DIR
+    # Central Server Sync (when connected)
+    CENTRAL_API_URL: Optional[str] = "https://wildlife.pench.gov.in/api/v1"
+    CENTRAL_DB_URL: Optional[str] = None
+    
+    # Base Dir
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
+    
+    # Storage Paths
+    BASE_STORAGE_PATH: str = "data"
+    IMAGE_STORAGE_PATH: str = "data/images"
+    QUARANTINE_PATH: str = "data/quarantine"
+    CROPS_PATH: str = "data/crops"
+    
+    # Security
+    SECRET_KEY: str = "pench-reserve-secret-key-production-offline-token-2026"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    
+    # --- AI Triage & Ecological Movement Threshold Policies ---
+    # 1. Blank vs Animal Triage
+    BLANK_CONFIDENCE_THRESHOLD: float = 0.70  # >= 70% blankness moved to Quarantine Vault
+    BLANK_UNCERTAIN_LOWER: float = 0.40
+    
+    # 2. Tiger Flank Stripe Re-Identification (Asymmetric Lateral Stripes)
+    TIGER_AUTO_MATCH_THRESHOLD: float = 0.85  # >= 85% cosine similarity -> Auto-accepted
+    TIGER_AMBIGUOUS_LOWER_THRESHOLD: float = 0.50  # 50% - 85% -> Routed to Human Review Studio
+    TIGER_AMBIGUOUS_THRESHOLD: float = 0.50
+    # < 50% -> Provisional Individual (PTR-T-NEW-XXXX)
+    
+    # 3. Minimum Observations for Scientific Home Range (MCP 95%)
+    MIN_OBSERVATIONS_FOR_MCP: int = 5  # Scientifically defensible minimum sightings for convex hull
+    
+    # 4. Movement Deviation Alert Thresholds (Aligned with Pench Ecological Zones)
+    CORE_CENTROID_SHIFT_THRESHOLD_KM: float = 4.5   # Core sanctuary territory radius (~15-20 sq km territory)
+    CENTROID_SHIFT_THRESHOLD_KM: float = 4.5
+    BUFFER_MOVEMENT_THRESHOLD_KM: float = 5.0       # Buffer zone expansion threshold (explicit 5.0 km)
+    VILLAGE_PROXIMITY_THRESHOLD_KM: float = 1.5     # Critical human-wildlife conflict interface boundary
+    PROLONGED_ABSENCE_DAYS: int = 45                # NTCA Phase-IV 45-day survey window
+    SURVEY_EFFORT_BASELINE_DAYS: int = 14           # Minimum camera trap-nights before movement alert triggers
+    SURVEY_EFFORT_MIN_DAYS: int = 14
+    
+    # Privacy Protection
+    BLUR_HUMAN_FACES: bool = True
 
 settings = Settings()

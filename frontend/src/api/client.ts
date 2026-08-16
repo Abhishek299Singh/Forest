@@ -79,6 +79,10 @@ export class ApiClient {
     return this.request<any>('/triage/statistics');
   }
 
+  static async getBenchmark(iterations = 30) {
+    return this.request<any>(`/triage/benchmark?iterations=${iterations}`);
+  }
+
   static async ingestFolder(folder_path: string, station_id?: string) {
     return this.request<any>('/triage/ingest-folder', {
       method: 'POST',

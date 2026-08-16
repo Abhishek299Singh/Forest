@@ -1,6 +1,7 @@
 import pytest
+from pathlib import Path
 from app.db.database import SessionLocal, Base, engine
-from app.db.models import CameraStation, User, Tiger, Image
+from app.db.models import CameraStation, User, Tiger, Image, SyncOutbox
 from app.services.ingestion import ingestion_manager
 from app.services.sync_engine import sync_engine
 from app.core.config import settings
@@ -14,7 +15,10 @@ def db_session():
 
 @pytest.mark.asyncio
 async def test_folder_ingestion_and_sync_queue(db_session):
-    demo_folder = settings.BASE_DIR.parent / "demo_sd_cards" / "batch_01_core_turia"
+    demo_folder = settings.BASE_DIR / "demo_sd_cards" / "batch_01_core_turia"
+    if not demo_folder.exists():
+        demo_folder = Path("demo_sd_cards/batch_01_core_turia")
+
     if demo_folder.exists():
         report = await ingestion_manager.process_batch(
             db=db_session,
@@ -25,7 +29,7 @@ async def test_folder_ingestion_and_sync_queue(db_session):
         assert report["processed"] >= 3
         assert report["status"] == "completed"
 
-    # Test sync outbox
+    # Test sync outbox queuing
     sync_engine.queue_outbox(
         db=db_session,
         entity_type="test_sighting",

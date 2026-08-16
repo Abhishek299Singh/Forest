@@ -188,3 +188,12 @@ def get_triage_statistics(db: Session = Depends(get_db)):
         "storage_saved_mb": storage_saved_mb,
         "quarantine_rate_pct": round((quarantined / max(1, total_images)) * 100, 1)
     }
+
+@router.get("/benchmark")
+def run_live_benchmark(iterations: int = 30):
+    """
+    Executes live hardware benchmark on local CPU for stage latency, throughput (FPS), RAM usage, and accuracy metrics.
+    """
+    from app.ml.benchmark import ai_benchmark
+    return ai_benchmark.run_benchmark(iterations=iterations)
+

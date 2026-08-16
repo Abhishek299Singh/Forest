@@ -14,11 +14,11 @@ class MovementAlertEngine:
     """
     Survey-effort normalized movement deviation intelligence engine.
     Evaluates ecological changes and detects:
-    - Territory Centroid Shift
+    - Territory Centroid Shift (>4.5 km core, >5.0 km buffer)
     - Core to Buffer Zone Incursion
-    - Village-adjacent station proximity
-    - New Station colonization
-    - Prolonged Absence
+    - Village-adjacent station proximity (<=1.5 km)
+    - First-time station colonization
+    - Prolonged Absence (>45 days)
     """
 
     def haversine_distance_km(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -55,7 +55,7 @@ class MovementAlertEngine:
 
         if deployment and deployment.install_date:
             days_deployed = (sighting_date - deployment.install_date).days
-            if days_deployed < settings.SURVEY_EFFORT_MIN_DAYS:
+            if days_deployed < settings.SURVEY_EFFORT_BASELINE_DAYS:
                 is_recent_deployment = True
 
         return {
@@ -75,13 +75,32 @@ class MovementAlertEngine:
         alerts_created = []
         effort_info = self.check_survey_effort_context(db, station.id, sighting.captured_at)
 
-        # 1. Check Buffer Incursion (Core tiger detected in buffer)
+        # Historical stations for this tiger
+        prior_sightings = (
+            db.query(TigerSighting, CameraStation)
+            .join(CameraStation, TigerSighting.station_id == CameraStation.id)
+            .filter(TigerSighting.tiger_id == tiger.id)
+            .filter(TigerSighting.id != sighting.id)
+            .all()
+        )
+        prior_station_codes = list(set([st.code for _, st in prior_sightings]))
+        is_first_time_station = station.code not in prior_station_codes and len(prior_station_codes) > 0
+
+        # Calculate distance to historical centroid
+        dist_from_centroid = 0.0
+        if tiger.centroid_lat and tiger.centroid_lon:
+            dist_from_centroid = self.haversine_distance_km(
+                tiger.centroid_lat, tiger.centroid_lon, station.latitude, station.longitude
+            )
+
+        # 1. Check Buffer Incursion (Core resident detected in buffer zone)
         if "core" in tiger.primary_zone.lower() and station.zone.lower() == "buffer":
             severity = "HIGH"
+            previous_summary = ", ".join(prior_station_codes[:4]) if prior_station_codes else "None (Baseline)"
             explanation = {
                 "what_changed": f"Tiger {tiger.callsign} ({tiger.tiger_code}) detected at Buffer Station {station.code} ({station.name}).",
                 "why_it_matters": "Resident Core individual has crossed management boundary into the multi-use Buffer Zone.",
-                "supporting_evidence": f"Previous territory centered in Core at ({round(tiger.centroid_lat or 0, 4)}, {round(tiger.centroid_lon or 0, 4)}). New sighting at {station.name}.",
+                "supporting_evidence": f"Previous stations: {previous_summary}. Current: {station.code}. Distance from centroid: {dist_from_centroid} km. Active trap-nights: {effort_info['active_trap_nights']}.",
                 "survey_effort": effort_info["effort_status"],
                 "is_effort_artifact": effort_info["is_recent_deployment"],
                 "confidence": 0.94,
@@ -101,17 +120,17 @@ class MovementAlertEngine:
             db.flush()
             alerts_created.append(alert)
 
-        # 2. Check Village Proximity / Human Interface
+        # 2. Check Village Proximity / Human Interface (<= 1.5 km)
         if station.is_village_adjacent:
             village_name = station.adjacent_village_name or "Settlement Edge"
             severity = "CRITICAL"
             explanation = {
-                "what_changed": f"Individual {tiger.callsign} detected at village-fringe station {station.code} adjacent to {village_name}.",
-                "why_it_matters": "Heightened human-tiger interface risk requiring active patrol mobilization and village awareness notification.",
-                "supporting_evidence": f"Station {station.code} is situated within {settings.VILLAGE_PROXIMITY_THRESHOLD_KM} km of {village_name} agricultural boundary.",
+                "what_changed": f"Individual {tiger.callsign} ({tiger.tiger_code}) detected at village-fringe station {station.code} adjacent to {village_name}.",
+                "why_it_matters": f"Station is situated within {settings.VILLAGE_PROXIMITY_THRESHOLD_KM} km of {village_name} boundary. Immediate patrol deployment recommended to prevent livestock conflict.",
+                "supporting_evidence": f"Consecutive sighting at {station.code} ({station.latitude:.4f}, {station.longitude:.4f}). Distance from centroid: {dist_from_centroid} km. Active trap-nights: {effort_info['active_trap_nights']}.",
                 "survey_effort": effort_info["effort_status"],
                 "is_effort_artifact": False,
-                "confidence": 0.96,
+                "confidence": 0.97,
                 "location": f"{village_name} Fringe ({station.code})"
             }
 
@@ -120,7 +139,7 @@ class MovementAlertEngine:
                 station_id=station.id,
                 alert_type="village_incursion",
                 severity=severity,
-                confidence=0.96,
+                confidence=0.97,
                 explanation_json=json.dumps(explanation),
                 status="active"
             )
@@ -128,33 +147,58 @@ class MovementAlertEngine:
             db.flush()
             alerts_created.append(alert)
 
-        # 3. Check Centroid Shift / Distance from territory center
-        if tiger.centroid_lat and tiger.centroid_lon:
-            dist_km = self.haversine_distance_km(tiger.centroid_lat, tiger.centroid_lon, station.latitude, station.longitude)
-            if dist_km >= settings.CENTROID_SHIFT_THRESHOLD_KM:
-                severity = "HIGH" if dist_km > 6.0 else "MEDIUM"
-                explanation = {
-                    "what_changed": f"Territory centroid shift of {dist_km} km detected for {tiger.callsign}.",
-                    "why_it_matters": f"Exceeds reserve territory deviation threshold of {settings.CENTROID_SHIFT_THRESHOLD_KM} km, indicating potential range expansion or displacement.",
-                    "supporting_evidence": f"Centroid: ({round(tiger.centroid_lat, 4)}, {round(tiger.centroid_lon, 4)}) -> Sighting at ({station.latitude}, {station.longitude}). Distance: {dist_km} km.",
-                    "survey_effort": effort_info["effort_status"],
-                    "is_effort_artifact": effort_info["is_recent_deployment"],
-                    "confidence": 0.90,
-                    "location": f"Station {station.code} ({station.range_beat})"
-                }
+        # 3. Check Centroid Shift (>4.5 km core or >5.0 km buffer)
+        threshold_dist = settings.BUFFER_MOVEMENT_THRESHOLD_KM if station.zone.lower() == "buffer" else settings.CORE_CENTROID_SHIFT_THRESHOLD_KM
+        if dist_from_centroid >= threshold_dist:
+            severity = "HIGH" if dist_from_centroid > 6.0 else "MEDIUM"
+            previous_summary = ", ".join(prior_station_codes[:4]) if prior_station_codes else "Baseline Centroid"
+            explanation = {
+                "what_changed": f"Territory centroid shift of {dist_from_centroid} km detected for {tiger.callsign} ({tiger.tiger_code}).",
+                "why_it_matters": f"Exceeds territory deviation threshold of {threshold_dist} km ({station.zone.upper()} zone), indicating potential range expansion or displacement.",
+                "supporting_evidence": f"Historical centroid: ({round(tiger.centroid_lat or 0, 4)}, {round(tiger.centroid_lon or 0, 4)}). Current station: {station.code} ({station.name}). Previous stations: {previous_summary}.",
+                "survey_effort": effort_info["effort_status"],
+                "is_effort_artifact": effort_info["is_recent_deployment"],
+                "confidence": 0.91,
+                "location": f"Station {station.code} ({station.range_beat})"
+            }
 
-                alert = Alert(
-                    tiger_id=tiger.id,
-                    station_id=station.id,
-                    alert_type="centroid_shift",
-                    severity=severity,
-                    confidence=0.90,
-                    explanation_json=json.dumps(explanation),
-                    status="active"
-                )
-                db.add(alert)
-                db.flush()
-                alerts_created.append(alert)
+            alert = Alert(
+                tiger_id=tiger.id,
+                station_id=station.id,
+                alert_type="centroid_shift",
+                severity=severity,
+                confidence=0.91,
+                explanation_json=json.dumps(explanation),
+                status="active"
+            )
+            db.add(alert)
+            db.flush()
+            alerts_created.append(alert)
+
+        # 4. First-Time Station Colonization
+        if is_first_time_station and not any(a.alert_type in ["buffer_movement", "village_incursion"] for a in alerts_created):
+            explanation = {
+                "what_changed": f"Tiger {tiger.callsign} ({tiger.tiger_code}) captured at Station {station.code} for the first time.",
+                "why_it_matters": f"First documented occurrence at {station.name}. Expands known spatial range for this individual.",
+                "supporting_evidence": f"Prior stations: {', '.join(prior_station_codes[:5])}. Current station: {station.code}. Distance from centroid: {dist_from_centroid} km. Active trap-nights: {effort_info['active_trap_nights']}.",
+                "survey_effort": effort_info["effort_status"],
+                "is_effort_artifact": effort_info["is_recent_deployment"],
+                "confidence": 0.89,
+                "location": f"Station {station.code} ({station.name})"
+            }
+
+            alert = Alert(
+                tiger_id=tiger.id,
+                station_id=station.id,
+                alert_type="new_station",
+                severity="LOW",
+                confidence=0.89,
+                explanation_json=json.dumps(explanation),
+                status="active"
+            )
+            db.add(alert)
+            db.flush()
+            alerts_created.append(alert)
 
         if alerts_created:
             db.commit()
@@ -187,7 +231,6 @@ class MovementAlertEngine:
         for t in absent_tigers:
             days_absent = (now - t.last_seen).days if t.last_seen else 999
             
-            # Check if active alert already exists
             existing = (
                 db.query(Alert)
                 .filter(Alert.tiger_id == t.id)
@@ -200,8 +243,8 @@ class MovementAlertEngine:
 
             explanation = {
                 "what_changed": f"Resident tiger {t.callsign} ({t.tiger_code}) not captured for {days_absent} consecutive days.",
-                "why_it_matters": f"Exceeds maximum resident observation gap threshold of {settings.PROLONGED_ABSENCE_DAYS} days.",
-                "supporting_evidence": f"Last seen on {t.last_seen.strftime('%Y-%m-%d')} in {t.primary_zone}.",
+                "why_it_matters": f"Exceeds maximum resident observation gap threshold of {settings.PROLONGED_ABSENCE_DAYS} days (NTCA 45-day survey window).",
+                "supporting_evidence": f"Last seen on {t.last_seen.strftime('%Y-%m-%d')} in {t.primary_zone}. Historical territory area: {t.territory_area_km2} km².",
                 "survey_effort": "Regular ongoing camera trap grid",
                 "is_effort_artifact": False,
                 "confidence": 0.88,

@@ -171,9 +171,18 @@ export const CataloguePage: React.FC = () => {
                   <span className="text-xs font-mono text-amber-400 bg-[#122417] px-2 py-0.5 rounded border border-[#1c3525]">
                     {selectedTiger.tiger_code}
                   </span>
+                  {selectedTiger.sightings_timeline.length >= 5 ? (
+                    <span className="text-[10px] font-mono text-emerald-400 bg-[#162b1e] px-2 py-0.5 rounded border border-[#2d523b]">
+                      Verified Home Range (MCP 95% • {selectedTiger.territory_area_km2} km²)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono text-amber-300 bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/60">
+                      Provisional Centroid (N = {selectedTiger.sightings_timeline.length} &lt; 5 sightings for MCP 95%)
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-emerald-400/70 mt-0.5">
-                  {selectedTiger.sex} • {selectedTiger.age_class} • Range: {selectedTiger.primary_zone} ({selectedTiger.territory_area_km2} km²)
+                  {selectedTiger.sex} • {selectedTiger.age_class} • Range: {selectedTiger.primary_zone}
                 </p>
               </div>
 

@@ -91,4 +91,8 @@ class TigerDetector:
         except Exception:
             return False
 
+    def detect_tiger(self, image_path: Path | str) -> Dict[str, Any]:
+        return self.detect(image_path)
+
 tiger_detector = TigerDetector()
+

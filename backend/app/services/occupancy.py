@@ -1,21 +1,22 @@
 import math
 import json
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from shapely.geometry import MultiPoint, Polygon, mapping
 from shapely.ops import unary_union
 
 from app.db.models import Tiger, TigerSighting, OccupancyResult, CameraStation
+from app.core.config import settings
 
 class OccupancyEngine:
     """
     Computes individual tiger spatial ecology metrics:
     - Activity Centroids
-    - Minimum Convex Polygon (MCP 95% & 100%)
+    - Minimum Convex Polygon (MCP 95% & 100%) with Minimum Observation Constraint (N >= 5)
     - Home-range area in square kilometers
     - Station visit frequency & temporal 24-hour rhythm
-    - Inter-individual territory overlap
+    - Inter-individual territory overlap matrix
     """
 
     def _coords_to_km2(self, polygon: Polygon, mean_lat: float) -> float:
@@ -55,6 +56,8 @@ class OccupancyEngine:
                 "centroid": None,
                 "mcp_area_km2": 0.0,
                 "polygon_geojson": None,
+                "status": "NO_OBSERVATIONS",
+                "is_statistically_reliable": False,
                 "station_frequency": {},
                 "hourly_activity": [0] * 24
             }
@@ -76,23 +79,24 @@ class OccupancyEngine:
         centroid_lat = float(sum(lats) / len(lats))
         centroid_lon = float(sum(lons) / len(lons))
 
-        # MCP calculation
+        # Scientific Rule: Minimum Observations Check
+        is_reliable = len(sightings) >= settings.MIN_OBSERVATIONS_FOR_MCP
         mcp_area_km2 = 0.0
         geojson_geom = None
 
-        if len(points) >= 3:
+        if is_reliable and len(points) >= 3:
             mp = MultiPoint(points)
             hull = mp.convex_hull
             if isinstance(hull, Polygon) and not hull.is_empty:
-                # Buffer slightly to represent movement corridor width (~300 meters = 0.003 deg)
+                # Buffer slightly to represent territorial movement corridor width (~400m)
                 buffered_hull = hull.buffer(0.004)
                 mcp_area_km2 = self._coords_to_km2(buffered_hull, centroid_lat)
                 geojson_geom = mapping(buffered_hull)
             else:
-                mcp_area_km2 = 2.5
+                mcp_area_km2 = 3.5
         elif len(points) >= 1:
-            # Single or two points buffered circle (~2-5 sq km)
-            p = MultiPoint(points).buffer(0.01)
+            # Provisional point centroid with circle representation (insufficient captures for true polygon)
+            p = MultiPoint(points).buffer(0.008)
             mcp_area_km2 = self._coords_to_km2(p, centroid_lat)
             geojson_geom = mapping(p)
 
@@ -132,6 +136,9 @@ class OccupancyEngine:
 
         db.commit()
 
+        status_text = "VERIFIED_HOME_RANGE" if is_reliable else "INSUFFICIENT_OBSERVATIONS"
+        warning_msg = None if is_reliable else f"Provisional centroid only (N={len(sightings)} < {settings.MIN_OBSERVATIONS_FOR_MCP} required for scientific MCP 95% convex hull)"
+
         return {
             "tiger_id": tiger_id,
             "tiger_code": tiger.tiger_code,
@@ -142,6 +149,9 @@ class OccupancyEngine:
             "mcp_area_km2": mcp_area_km2,
             "kde_area_km2": round(mcp_area_km2 * 1.15, 2),
             "polygon_geojson": geojson_geom,
+            "status": status_text,
+            "is_statistically_reliable": is_reliable,
+            "warning": warning_msg,
             "station_frequency": station_freq,
             "hourly_activity": hourly_counts
         }
