@@ -1,0 +1,190 @@
+import os
+import uuid
+import shutil
+from pathlib import Path
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.db.models import Image, Detection, CameraStation, AuditLog
+from app.services.ingestion import ingestion_manager
+from app.api.auth import get_current_user
+from app.core.config import settings
+
+router = APIRouter(prefix="/triage", tags=["Triage & Ingestion"])
+
+class IngestFolderRequest(BaseModel):
+    folder_path: str
+    station_id: Optional[str] = None
+
+class QuarantineActionRequest(BaseModel):
+    image_ids: List[str]
+    action: str  # "restore", "confirm_blank", "delete_quarantine_flag"
+    notes: Optional[str] = None
+
+@router.post("/ingest-folder")
+async def ingest_folder(
+    req: IngestFolderRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    path = Path(req.folder_path)
+    if not path.exists():
+        # Check if user passed relative demo path
+        alt_path = settings.BASE_DIR.parent / req.folder_path
+        if alt_path.exists():
+            path = alt_path
+        else:
+            raise HTTPException(status_code=400, detail=f"Folder not found: {req.folder_path}")
+
+    batch_id = f"BATCH-{int(uuid.uuid4().hex[:8], 16)}"
+    
+    # Process synchronously or track in manager
+    report = await ingestion_manager.process_batch(
+        db=db,
+        batch_id=batch_id,
+        folder_path=path,
+        station_id_override=req.station_id
+    )
+
+    # Log audit
+    audit = AuditLog(
+        actor_id=current_user.full_name if current_user else "Field Staff",
+        actor_role=current_user.role if current_user else "forest_staff",
+        action="folder_ingested",
+        entity_type="batch",
+        entity_id=batch_id,
+        details_json=str(report)
+    )
+    db.add(audit)
+    db.commit()
+
+    return report
+
+@router.get("/batch/{batch_id}")
+def get_batch_status(batch_id: str):
+    status = ingestion_manager.get_batch_status(batch_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    return status
+
+@router.get("/quarantine")
+def list_quarantined_images(
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    query = (
+        db.query(Image, CameraStation, Detection)
+        .outerjoin(CameraStation, Image.station_id == CameraStation.id)
+        .outerjoin(Detection, Detection.image_id == Image.id)
+        .filter(Image.is_quarantined == True)
+        .order_by(Image.created_at.desc())
+    )
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
+
+    results = []
+    for img, st, det in items:
+        results.append({
+            "id": img.id,
+            "filename": img.filename,
+            "station_code": st.code if st else img.station_code_detected,
+            "station_name": st.name if st else "Unassigned Station",
+            "zone": st.zone if st else "Core",
+            "captured_at": img.captured_at.isoformat() if img.captured_at else None,
+            "quarantine_reason": img.quarantine_reason,
+            "confidence": det.confidence if det else 0.85,
+            "file_size_kb": round(os.path.getsize(img.storage_path) / 1024, 1) if os.path.exists(img.storage_path) else 450,
+            "thumbnail_url": f"/api/v1/images/{img.id}/thumbnail",
+            "image_url": f"/api/v1/images/{img.id}/file"
+        })
+
+    return {
+        "total": total,
+        "items": results
+    }
+
+@router.post("/quarantine/{image_id}/restore")
+def restore_quarantined_image(
+    image_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    img = db.query(Image).filter(Image.id == image_id).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    img.is_quarantined = False
+    img.status = "triaged"
+    img.quarantine_reason = f"Restored by {current_user.full_name if current_user else 'Human Reviewer'}"
+    
+    # Audit log
+    audit = AuditLog(
+        actor_id=current_user.full_name if current_user else "Reviewer",
+        actor_role=current_user.role if current_user else "reviewer",
+        action="image_restored_from_quarantine",
+        entity_type="image",
+        entity_id=img.id
+    )
+    db.add(audit)
+    db.commit()
+
+    return {"status": "success", "message": f"Image {img.filename} restored to active catalogue."}
+
+@router.post("/quarantine/batch-action")
+def batch_quarantine_action(
+    req: QuarantineActionRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    images = db.query(Image).filter(Image.id.in_(req.image_ids)).all()
+    count = len(images)
+
+    for img in images:
+        if req.action == "restore":
+            img.is_quarantined = False
+            img.status = "triaged"
+            img.quarantine_reason = f"Batch restored: {req.notes or 'User action'}"
+        elif req.action == "confirm_blank":
+            img.status = "quarantined_confirmed"
+
+    audit = AuditLog(
+        actor_id=current_user.full_name if current_user else "Reviewer",
+        actor_role=current_user.role if current_user else "reviewer",
+        action=f"batch_{req.action}",
+        entity_type="quarantine_batch",
+        entity_id=f"count_{count}",
+        details_json=req.notes
+    )
+    db.add(audit)
+    db.commit()
+
+    return {"status": "success", "affected_count": count}
+
+@router.get("/statistics")
+def get_triage_statistics(db: Session = Depends(get_db)):
+    total_images = db.query(Image).count()
+    quarantined = db.query(Image).filter(Image.is_quarantined == True).count()
+    triaged = total_images - quarantined
+    
+    tiger_detections = db.query(Detection).filter(Detection.class_name == "tiger").count()
+    animal_detections = db.query(Detection).filter(Detection.class_name == "animal").count()
+    human_detections = db.query(Detection).filter(Detection.class_name == "human").count()
+    blank_detections = db.query(Detection).filter(Detection.class_name == "blank").count()
+
+    storage_saved_mb = round(quarantined * 4.5, 1)
+
+    return {
+        "total_images": total_images,
+        "triaged_images": triaged,
+        "quarantined_images": quarantined,
+        "blank_images": blank_detections,
+        "tiger_images": tiger_detections,
+        "other_animals": animal_detections,
+        "human_images": human_detections,
+        "storage_saved_mb": storage_saved_mb,
+        "quarantine_rate_pct": round((quarantined / max(1, total_images)) * 100, 1)
+    }
