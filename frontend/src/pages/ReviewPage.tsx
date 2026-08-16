@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { ReviewTask } from '../types';
-import { CheckSquare, Check, X, PlusCircle, Eye, FileText, Sparkles } from 'lucide-react';
+import { CheckSquare, Check, X, PlusCircle, FileText, Trees } from 'lucide-react';
 
 export const ReviewPage: React.FC = () => {
   const [tasks, setTasks] = useState<ReviewTask[]>([]);
@@ -75,13 +75,13 @@ export const ReviewPage: React.FC = () => {
   return (
     <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#233044]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1c3525]">
         <div>
-          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-emerald-400" />
-            <span>Biologist Comparative Identification Studio</span>
+            <span>Biologist Comparative Stripe Identification Studio</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-emerald-400/70 mt-0.5">
             Audit ambiguous flank stripe pattern matches, confirm candidate individuals, and formally register new tigers.
           </p>
         </div>
@@ -91,16 +91,16 @@ export const ReviewPage: React.FC = () => {
       </div>
 
       {tasks.length === 0 ? (
-        <div className="field-card p-12 text-center text-slate-400 text-xs space-y-2">
-          <Sparkles className="w-8 h-8 text-emerald-400 mx-auto" />
-          <p className="font-semibold text-slate-200 text-sm">All Identification Tasks Reviewed</p>
+        <div className="field-card p-12 text-center text-emerald-400/70 text-xs space-y-2">
+          <Trees className="w-8 h-8 text-emerald-400 mx-auto" />
+          <p className="font-semibold text-emerald-200 text-sm">All Identification Tasks Reviewed</p>
           <p>No pending ambiguous identifications or unconfirmed captures in queue.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
           {/* Left 1 Col: Task Queue */}
           <div className="space-y-2 text-xs">
-            <h3 className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">
+            <h3 className="font-bold text-emerald-300 uppercase tracking-wider text-[11px]">
               Task Queue ({tasks.length})
             </h3>
             <div className="space-y-1.5 max-h-[700px] overflow-y-auto pr-1">
@@ -112,19 +112,19 @@ export const ReviewPage: React.FC = () => {
                     onClick={() => loadTaskDetail(t.id)}
                     className={`p-2.5 rounded border transition cursor-pointer space-y-1 ${
                       isSelected
-                        ? 'bg-[#1b2b3a] border-emerald-500/50'
-                        : 'bg-[#121a29] border-[#233044] hover:bg-[#162236]'
+                        ? 'bg-[#162b1e] border-emerald-500/70'
+                        : 'bg-[#0e1c12] border-[#1c3525] hover:bg-[#14271a]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-200 truncate">{t.image?.filename}</span>
+                      <span className="font-semibold text-emerald-100 truncate">{t.image?.filename}</span>
                       <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ${
-                        t.priority === 'high' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-slate-800 text-slate-300'
+                        t.priority === 'high' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#122417] text-emerald-300'
                       }`}>
                         {t.priority.toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                    <div className="text-[10px] text-emerald-400/70 flex items-center justify-between">
                       <span>{t.image?.station_code || 'ST-01'}</span>
                       <span>{t.task_type.replace(/_/g, ' ')}</span>
                     </div>
@@ -139,21 +139,21 @@ export const ReviewPage: React.FC = () => {
             <div className="lg:col-span-3 space-y-4">
               <div className="field-card p-4 space-y-4">
                 {/* Station & Image Context */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#233044] text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#1c3525] text-xs">
                   <div>
-                    <span className="font-bold text-slate-100">Capture: {selectedTask.image?.filename}</span>
-                    <span className="text-slate-400 ml-2">Station: <strong className="text-slate-200">{selectedTask.image?.station_code} ({selectedTask.image?.station_name})</strong></span>
+                    <span className="font-bold text-emerald-100">Capture: {selectedTask.image?.filename}</span>
+                    <span className="text-emerald-400/70 ml-2">Station: <strong className="text-emerald-200">{selectedTask.image?.station_code} ({selectedTask.image?.station_name})</strong></span>
                   </div>
 
                   {/* Contrast Filter Tools for Biologists */}
-                  <div className="flex items-center gap-1 bg-[#0b111e] p-0.5 rounded border border-[#233044] text-[11px]">
-                    <span className="text-slate-400 px-2 text-[10px]">Stripe Contrast:</span>
+                  <div className="flex items-center gap-1 bg-[#07100a] p-0.5 rounded border border-[#1c3525] text-[11px]">
+                    <span className="text-emerald-400/70 px-2 text-[10px]">Stripe Filter:</span>
                     {(['normal', 'contrast', 'grayscale', 'invert'] as const).map((f) => (
                       <button
                         key={f}
                         onClick={() => setStripeFilter(f)}
                         className={`px-2 py-0.5 rounded capitalize transition ${
-                          stripeFilter === f ? 'bg-[#1b2b3a] text-emerald-300 font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          stripeFilter === f ? 'bg-[#162b1e] text-emerald-200 font-semibold' : 'text-emerald-500 hover:text-emerald-200'
                         }`}
                       >
                         {f}
@@ -165,12 +165,12 @@ export const ReviewPage: React.FC = () => {
                 {/* Split Side-by-Side Display */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Left: Target Capture */}
-                  <div className="bg-[#0b111e] p-3 rounded border border-[#233044] space-y-2">
+                  <div className="bg-[#07100a] p-3 rounded border border-[#1c3525] space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold">
                       <span className="text-emerald-400">Target Field Capture</span>
-                      <span className="text-slate-400 text-[10px] font-mono capitalize">Flank: {selectedTask.image?.flank_side || 'Left'}</span>
+                      <span className="text-emerald-400/70 text-[10px] font-mono capitalize">Flank: {selectedTask.image?.flank_side || 'Left'}</span>
                     </div>
-                    <div className="h-56 rounded bg-[#162032] border border-[#233044] overflow-hidden">
+                    <div className="h-56 rounded bg-[#122417] border border-[#1c3525] overflow-hidden">
                       <img
                         src={selectedTask.image?.image_url}
                         alt="target"
@@ -178,17 +178,17 @@ export const ReviewPage: React.FC = () => {
                         className="w-full h-full object-cover transition-all"
                       />
                     </div>
-                    <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                    <div className="text-[10px] font-mono text-emerald-400/70 flex items-center justify-between">
                       <span>{selectedTask.image?.captured_at?.replace('T', ' ').slice(0, 19)}</span>
                       <span>Zone: {selectedTask.image?.zone || 'Core'}</span>
                     </div>
                   </div>
 
                   {/* Right: Top Candidate Matches */}
-                  <div className="bg-[#0b111e] p-3 rounded border border-[#233044] space-y-2">
+                  <div className="bg-[#07100a] p-3 rounded border border-[#1c3525] space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold">
                       <span className="text-amber-400">Catalogue Match Candidates</span>
-                      <span className="text-slate-400 text-[10px]">Select Reference to Confirm</span>
+                      <span className="text-emerald-400/70 text-[10px]">Select Reference to Confirm</span>
                     </div>
 
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -201,12 +201,12 @@ export const ReviewPage: React.FC = () => {
                             onClick={() => setSelectedCandidateId(c.tiger_id)}
                             className={`p-2 rounded border transition cursor-pointer flex items-center justify-between ${
                               isChosen
-                                ? 'bg-[#261f12] border-amber-500/70'
-                                : 'bg-[#121a29] border-[#233044] hover:bg-[#162236]'
+                                ? 'bg-[#2c1e15] border-amber-500/70'
+                                : 'bg-[#0e1c12] border-[#1c3525] hover:bg-[#14271a]'
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
-                              <div className="w-12 h-12 rounded bg-[#0b111e] overflow-hidden border border-[#233044]">
+                              <div className="w-12 h-12 rounded bg-[#07100a] overflow-hidden border border-[#1c3525]">
                                 {c.reference_images?.[0] ? (
                                   <img 
                                     src={c.reference_images[0].thumbnail_url} 
@@ -219,14 +219,14 @@ export const ReviewPage: React.FC = () => {
                                 )}
                               </div>
                               <div className="text-xs">
-                                <div className="font-semibold text-slate-100">{c.callsign}</div>
-                                <div className="text-[10px] font-mono text-slate-400">{c.tiger_code} • {c.sex || 'Adult'}</div>
+                                <div className="font-semibold text-emerald-100">{c.callsign}</div>
+                                <div className="text-[10px] font-mono text-emerald-400/70">{c.tiger_code} • {c.sex || 'Adult'}</div>
                               </div>
                             </div>
 
                             <div className="text-right">
                               <div className="text-xs font-bold text-emerald-400 font-mono">{matchPct}% Match</div>
-                              <span className="text-[9px] text-slate-400 uppercase font-mono">Cosine</span>
+                              <span className="text-[9px] text-emerald-500 uppercase font-mono">Cosine</span>
                             </div>
                           </div>
                         );
@@ -236,10 +236,10 @@ export const ReviewPage: React.FC = () => {
                 </div>
 
                 {/* Decision Actions & Justification */}
-                <div className="pt-3 border-t border-[#233044] space-y-3">
+                <div className="pt-3 border-t border-[#1c3525] space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300 flex items-center gap-1">
-                      <FileText className="w-3.5 h-3.5 text-slate-400" />
+                    <label className="text-[11px] font-semibold text-emerald-300 flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Reviewer Biological Rationale (Audit Record)</span>
                     </label>
                     <input
@@ -247,7 +247,7 @@ export const ReviewPage: React.FC = () => {
                       value={reviewNotes}
                       onChange={(e) => setReviewNotes(e.target.value)}
                       placeholder="e.g. Verified left flank dorsal stripe fork matches PTR-T-048 reference profile."
-                      className="w-full bg-[#0b111e] border border-[#233044] text-slate-100 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-500 font-sans"
+                      className="w-full bg-[#07100a] border border-[#1c3525] text-emerald-100 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-500 font-sans"
                     />
                   </div>
 
@@ -256,7 +256,7 @@ export const ReviewPage: React.FC = () => {
                       <button
                         onClick={() => handleSubmitDecision('confirm_candidate')}
                         disabled={isSubmitting || !selectedCandidateId}
-                        className="px-3.5 py-1.5 bg-[#1b3d2b] hover:bg-[#234e37] disabled:opacity-50 text-emerald-200 border border-[#2d6144] text-xs font-semibold rounded transition flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 bg-[#162b1e] hover:bg-[#1f3b2a] disabled:opacity-50 text-emerald-200 border border-[#2d523b] text-xs font-semibold rounded transition flex items-center gap-1.5"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>Confirm Selected Match</span>
@@ -265,7 +265,7 @@ export const ReviewPage: React.FC = () => {
                       <button
                         onClick={() => handleSubmitDecision('create_new_tiger')}
                         disabled={isSubmitting}
-                        className="px-3.5 py-1.5 bg-[#1e293b] hover:bg-[#28384f] text-amber-300 border border-[#334155] text-xs font-semibold rounded transition flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 bg-[#2c1e15] hover:bg-[#3d2c1e] text-amber-200 border border-[#5e3f2b] text-xs font-semibold rounded transition flex items-center gap-1.5"
                       >
                         <PlusCircle className="w-3.5 h-3.5" />
                         <span>Enroll as New Individual</span>
@@ -275,7 +275,7 @@ export const ReviewPage: React.FC = () => {
                     <button
                       onClick={() => handleSubmitDecision('reject_candidate')}
                       disabled={isSubmitting}
-                      className="px-3 py-1.5 bg-[#0b111e] hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-xs rounded transition flex items-center gap-1 border border-[#233044]"
+                      className="px-3 py-1.5 bg-[#07100a] hover:bg-rose-950/60 text-emerald-500 hover:text-rose-300 text-xs rounded transition flex items-center gap-1 border border-[#1c3525]"
                     >
                       <X className="w-3.5 h-3.5" />
                       <span>Reject / Mark Uncertain</span>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ApiClient } from '../api/client';
-import { FileSpreadsheet, Download, Check } from 'lucide-react';
+import { FileSpreadsheet, Download } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -59,12 +59,12 @@ export const ReportsPage: React.FC = () => {
   return (
     <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
       {/* Header */}
-      <div className="pb-3 border-b border-[#233044]">
-        <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+      <div className="pb-3 border-b border-[#1c3525]">
+        <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
           <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-          <span>Statutory Reports & Data Export Portal</span>
+          <span>Statutory Reports & Forest Data Export</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-emerald-400/70 mt-0.5">
           Generate and export official NTCA-standard CSV reports for tiger census verification, patrol audits, and camera trap effort matrices.
         </p>
       </div>
@@ -75,25 +75,25 @@ export const ReportsPage: React.FC = () => {
           <div key={r.id} className="field-card p-4 space-y-3 flex flex-col justify-between text-xs">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-emerald-400 bg-[#162032] px-2 py-0.5 rounded border border-[#233044]">
+                <span className="text-[10px] font-mono text-emerald-300 bg-[#122417] px-2 py-0.5 rounded border border-[#23412e]">
                   {r.badge}
                 </span>
-                <span className="text-slate-400 font-mono text-[10px]">CSV</span>
+                <span className="text-emerald-400 font-mono text-[10px]">CSV</span>
               </div>
-              <h3 className="font-bold text-slate-100 text-sm leading-snug">
+              <h3 className="font-bold text-emerald-100 text-sm leading-snug">
                 {r.title}
               </h3>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
+              <p className="text-emerald-400/70 text-[11px] leading-relaxed">
                 {r.description}
               </p>
             </div>
 
-            <div className="pt-3 border-t border-[#1a2537] flex items-center justify-between">
-              <span className="text-[10px] font-mono text-slate-400 truncate max-w-[160px]">{r.filename}</span>
+            <div className="pt-3 border-t border-[#122417] flex items-center justify-between">
+              <span className="text-[10px] font-mono text-emerald-400 truncate max-w-[160px]">{r.filename}</span>
               <button
                 onClick={() => handleDownload(r.id, r.filename)}
                 disabled={downloading === r.id}
-                className="px-3 py-1.5 bg-[#1b3d2b] hover:bg-[#234e37] text-emerald-200 text-xs font-semibold rounded border border-[#2d6144] transition flex items-center gap-1.5"
+                className="px-3 py-1.5 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 text-xs font-semibold rounded border border-[#2d523b] transition flex items-center gap-1.5"
               >
                 {downloading === r.id ? (
                   <span>Exporting...</span>

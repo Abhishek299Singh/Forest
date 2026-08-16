@@ -3,46 +3,46 @@
 
 @layer base {
   body {
-    background-color: #0b111e;
-    color: #e2e8f0;
+    background-color: #07100a;
+    color: #e2f0e6;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Crisp field panel */
+/* Forest card panels */
 .field-card {
-  background-color: #121a29;
-  border: 1px solid #233044;
+  background-color: #0e1c12;
+  border: 1px solid #1c3525;
   border-radius: 8px;
 }
 
 .field-card-interactive {
-  background-color: #121a29;
-  border: 1px solid #233044;
+  background-color: #0e1c12;
+  border: 1px solid #1c3525;
   border-radius: 8px;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .field-card-interactive:hover {
-  background-color: #162236;
-  border-color: #3b4e6b;
+  background-color: #14271a;
+  border-color: #2e553c;
 }
 
-/* Subtle scrollbars */
+/* Pine & moss scrollbars */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b111e;
+  background: #07100a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #233044;
+  background: #1c3525;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #384860;
+  background: #2e553c;
 }
 
 /* Tabular figures for coordinates, percentages, and trap nights */
@@ -50,17 +50,17 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* MapLibre Popup styling */
+/* MapLibre Popup styling - Forest Theme */
 .maplibregl-popup-content {
-  background: #121a29 !important;
-  color: #e2e8f0 !important;
-  border: 1px solid #2d3d57 !important;
+  background: #0e1c12 !important;
+  color: #e2f0e6 !important;
+  border: 1px solid #23412e !important;
   border-radius: 6px !important;
   padding: 10px 12px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
   font-family: inherit;
 }
-.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #2d3d57 !important; }
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #2d3d57 !important; }
-.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #2d3d57 !important; }
-.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #2d3d57 !important; }
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #23412e !important; }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #23412e !important; }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #23412e !important; }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #23412e !important; }

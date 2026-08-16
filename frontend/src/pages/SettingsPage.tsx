@@ -18,20 +18,20 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="p-5 space-y-5 max-w-[1200px] mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#233044]">
+      <div className="flex items-center justify-between pb-3 border-b border-[#1c3525]">
         <div>
-          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-emerald-400" />
             <span>AI Triage & Ecological Movement Threshold Policies</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-emerald-400/70 mt-0.5">
             Configure decision thresholds for automated blank image quarantine, stripe re-identification tiers, and territorial alert triggers.
           </p>
         </div>
 
         <button
           onClick={handleSave}
-          className="px-4 py-2 bg-[#1b3d2b] hover:bg-[#234e37] text-emerald-200 text-xs font-semibold rounded border border-[#2d6144] transition flex items-center gap-2"
+          className="px-4 py-2 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 text-xs font-semibold rounded border border-[#2d523b] transition flex items-center gap-2"
         >
           {saved ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
           <span>{saved ? 'Policies Updated' : 'Save Policies'}</span>
@@ -41,13 +41,13 @@ export const SettingsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
         {/* CV Triage Policy */}
         <div className="field-card p-4 space-y-4">
-          <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[11px] pb-2 border-b border-[#233044]">
+          <h3 className="font-bold text-emerald-200 uppercase tracking-wider text-[11px] pb-2 border-b border-[#1c3525]">
             Computer Vision Triage & Identification
           </h3>
 
           <div className="space-y-1.5">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-300">Blank Image Quarantine Threshold</span>
+              <span className="text-emerald-200">Blank Image Quarantine Threshold</span>
               <span className="text-emerald-400 font-mono font-bold">{blankThreshold}%</span>
             </div>
             <input
@@ -58,12 +58,12 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => setBlankThreshold(Number(e.target.value))}
               className="w-full accent-emerald-500"
             />
-            <p className="text-[11px] text-slate-400">Captures exceeding this blankness confidence are moved to Quarantine Vault.</p>
+            <p className="text-[11px] text-emerald-400/70">Captures exceeding this blankness confidence are moved to Quarantine Vault.</p>
           </div>
 
-          <div className="space-y-1.5 pt-2 border-t border-[#1a2537]">
+          <div className="space-y-1.5 pt-2 border-t border-[#122417]">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-300">Automated Stripe Match Acceptance</span>
+              <span className="text-emerald-200">Automated Stripe Match Acceptance</span>
               <span className="text-emerald-400 font-mono font-bold">{autoMatchThreshold}%</span>
             </div>
             <input
@@ -74,12 +74,12 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => setAutoMatchThreshold(Number(e.target.value))}
               className="w-full accent-emerald-500"
             />
-            <p className="text-[11px] text-slate-400">Cosine stripe vector similarity required for zero-touch auto assignment.</p>
+            <p className="text-[11px] text-emerald-400/70">Cosine stripe vector similarity required for zero-touch auto assignment.</p>
           </div>
 
-          <div className="space-y-1.5 pt-2 border-t border-[#1a2537]">
+          <div className="space-y-1.5 pt-2 border-t border-[#122417]">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-300">Ambiguous Review Floor</span>
+              <span className="text-emerald-200">Ambiguous Review Floor</span>
               <span className="text-amber-400 font-mono font-bold">{ambiguousLower}%</span>
             </div>
             <input
@@ -90,19 +90,19 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => setAmbiguousLower(Number(e.target.value))}
               className="w-full accent-amber-500"
             />
-            <p className="text-[11px] text-slate-400">Matches between {ambiguousLower}% and {autoMatchThreshold}% are routed to the Biologist Review Studio.</p>
+            <p className="text-[11px] text-emerald-400/70">Matches between {ambiguousLower}% and {autoMatchThreshold}% are routed to the Biologist Review Studio.</p>
           </div>
         </div>
 
         {/* Ecological Deviation Policy */}
         <div className="field-card p-4 space-y-4">
-          <h3 className="font-bold text-slate-200 uppercase tracking-wider text-[11px] pb-2 border-b border-[#233044]">
+          <h3 className="font-bold text-emerald-200 uppercase tracking-wider text-[11px] pb-2 border-b border-[#1c3525]">
             Ecological Movement & Spatial Alerts
           </h3>
 
           <div className="space-y-1.5">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-300">Territory Centroid Shift Trigger</span>
+              <span className="text-emerald-200">Territory Centroid Shift Trigger</span>
               <span className="text-rose-400 font-mono font-bold">{centroidShiftKm.toFixed(1)} km</span>
             </div>
             <input
@@ -114,12 +114,12 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => setCentroidShiftKm(Number(e.target.value))}
               className="w-full accent-rose-500"
             />
-            <p className="text-[11px] text-slate-400">Generates alert if a sighting exceeds this distance from the tiger's historical centroid.</p>
+            <p className="text-[11px] text-emerald-400/70">Generates alert if a sighting exceeds this distance from the tiger's historical centroid.</p>
           </div>
 
-          <div className="space-y-1.5 pt-2 border-t border-[#1a2537]">
+          <div className="space-y-1.5 pt-2 border-t border-[#122417]">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-300">Village Proximity Incursion Limit</span>
+              <span className="text-emerald-200">Village Proximity Incursion Limit</span>
               <span className="text-rose-400 font-mono font-bold">{villageDistanceKm.toFixed(1)} km</span>
             </div>
             <input
@@ -131,12 +131,12 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => setVillageDistanceKm(Number(e.target.value))}
               className="w-full accent-rose-500"
             />
-            <p className="text-[11px] text-slate-400">Triggers critical human-wildlife conflict alert when a tiger approaches a village boundary.</p>
+            <p className="text-[11px] text-emerald-400/70">Triggers critical human-wildlife conflict alert when a tiger approaches a village boundary.</p>
           </div>
 
-          <div className="space-y-1.5 pt-2 border-t border-[#1a2537]">
+          <div className="space-y-1.5 pt-2 border-t border-[#122417]">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-300">Prolonged Resident Absence Window</span>
+              <span className="text-emerald-200">Prolonged Resident Absence Window</span>
               <span className="text-amber-400 font-mono font-bold">{absenceDays} days</span>
             </div>
             <input
@@ -147,7 +147,7 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => setAbsenceDays(Number(e.target.value))}
               className="w-full accent-amber-500"
             />
-            <p className="text-[11px] text-slate-400">Flags resident tigers undetected across active trap-nights beyond this threshold.</p>
+            <p className="text-[11px] text-emerald-400/70">Flags resident tigers undetected across active trap-nights beyond this threshold.</p>
           </div>
         </div>
       </div>

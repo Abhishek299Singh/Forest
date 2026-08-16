@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { CameraStation, TigerSummary, AlertItem } from '../../types';
-import { Layers, MapPin, AlertOctagon, Compass } from 'lucide-react';
+import { Layers, MapPin, AlertOctagon } from 'lucide-react';
 
 interface ReserveMapProps {
   stations?: CameraStation[];
@@ -61,9 +61,10 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
             minzoom: 0,
             maxzoom: 19,
             paint: {
-              'raster-saturation': -0.85,
-              'raster-brightness-min': 0.15,
-              'raster-brightness-max': 0.8
+              'raster-saturation': -0.75,
+              'raster-hue-rotate': 80,
+              'raster-brightness-min': 0.12,
+              'raster-brightness-max': 0.75
             }
           }
         ]
@@ -89,6 +90,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         [79.15, 21.60]
       ];
 
+      // Buffer boundary
       map.addSource('buffer-boundary', {
         type: 'geojson',
         data: {
@@ -104,7 +106,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         source: 'buffer-boundary',
         paint: {
           'fill-color': '#b45309',
-          'fill-opacity': 0.08
+          'fill-opacity': 0.1
         }
       });
 
@@ -114,11 +116,12 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         source: 'buffer-boundary',
         paint: {
           'line-color': '#d97706',
-          'line-width': 1.5,
+          'line-width': 2,
           'line-dasharray': [3, 2]
         }
       });
 
+      // Core boundary
       map.addSource('core-boundary', {
         type: 'geojson',
         data: {
@@ -133,8 +136,8 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         type: 'fill',
         source: 'core-boundary',
         paint: {
-          'fill-color': '#15803d',
-          'fill-opacity': 0.15
+          'fill-color': '#166534',
+          'fill-opacity': 0.22
         }
       });
 
@@ -144,7 +147,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         source: 'core-boundary',
         paint: {
           'line-color': '#22c55e',
-          'line-width': 2
+          'line-width': 2.5
         }
       });
     });
@@ -171,7 +174,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         const color = isBuffer ? '#d97706' : '#10b981';
 
         el.innerHTML = `
-          <div style="background-color: ${color};" class="w-5 h-5 rounded-full text-black font-bold text-[9px] flex items-center justify-center border border-black shadow">
+          <div style="background-color: ${color};" class="w-5 h-5 rounded-full text-[#07100a] font-bold text-[9px] flex items-center justify-center border border-[#07100a] shadow-md font-mono">
             ${st.code.replace('ST-', '')}
           </div>
         `;
@@ -181,9 +184,9 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
           <div class="text-xs">
             <div class="font-bold text-emerald-400 font-mono">${st.code} (${st.zone.toUpperCase()})</div>
-            <div class="font-semibold text-slate-100">${st.name}</div>
-            <div class="text-slate-400 text-[11px] mt-0.5">${st.range_beat} • ${st.habitat}</div>
-            <div class="text-[11px] text-slate-300 mt-1.5 pt-1 border-t border-[#233044] flex justify-between">
+            <div class="font-semibold text-emerald-100">${st.name}</div>
+            <div class="text-emerald-400 text-[11px] mt-0.5">${st.range_beat} • ${st.habitat}</div>
+            <div class="text-[11px] text-emerald-200 mt-1.5 pt-1 border-t border-[#1c3525] flex justify-between">
               <span>${st.active_trap_nights} Trap-nights</span>
               <span class="text-emerald-400 font-bold">${st.sightings_count} Captures</span>
             </div>
@@ -210,10 +213,10 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
 
         el.innerHTML = `
           <div class="relative flex items-center justify-center">
-            <div class="w-7 h-7 rounded-full bg-[#1b2b3a] border border-amber-500 flex items-center justify-center text-xs shadow-lg">
+            <div class="w-7 h-7 rounded-full bg-[#162b1e] border border-amber-500 flex items-center justify-center text-xs shadow-lg">
               🐅
             </div>
-            <div class="absolute -bottom-4 whitespace-nowrap px-1 py-0.2 rounded bg-[#0b111e] text-[9px] font-mono text-amber-300 border border-[#233044]">
+            <div class="absolute -bottom-4 whitespace-nowrap px-1 py-0.2 rounded bg-[#07100a] text-[9px] font-mono text-amber-300 border border-[#1c3525]">
               ${t.tiger_code}
             </div>
           </div>
@@ -224,9 +227,9 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         const popup = new maplibregl.Popup({ offset: 12 }).setHTML(`
           <div class="text-xs">
             <div class="font-bold text-amber-400 font-mono">${t.tiger_code} (${t.status.toUpperCase()})</div>
-            <div class="font-semibold text-slate-100">${t.callsign}</div>
-            <div class="text-slate-400 text-[11px] mt-0.5">${t.sex} • ${t.age_class} • Range: ${t.primary_zone}</div>
-            <div class="text-slate-300 mt-1 pt-1 border-t border-[#233044]">Territory: <strong class="text-emerald-400">${t.territory_area_km2} km²</strong></div>
+            <div class="font-semibold text-emerald-100">${t.callsign}</div>
+            <div class="text-emerald-400 text-[11px] mt-0.5">${t.sex} • ${t.age_class} • Range: ${t.primary_zone}</div>
+            <div class="text-emerald-200 mt-1 pt-1 border-t border-[#1c3525]">Territory: <strong class="text-emerald-400">${t.territory_area_km2} km²</strong></div>
           </div>
         `);
 
@@ -259,8 +262,8 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         const popup = new maplibregl.Popup({ offset: 12 }).setHTML(`
           <div class="text-xs max-w-xs">
             <div class="font-bold font-mono text-[10px] ${isCrit ? 'text-rose-400' : 'text-amber-400'}">${al.severity} MOVEMENT ALERT</div>
-            <div class="font-bold text-slate-100 mt-0.5">${al.callsign} (${al.tiger_code})</div>
-            <div class="text-slate-300 text-[11px] mt-1">${al.explanation.what_changed}</div>
+            <div class="font-bold text-emerald-100 mt-0.5">${al.callsign} (${al.tiger_code})</div>
+            <div class="text-emerald-200 text-[11px] mt-1">${al.explanation.what_changed}</div>
           </div>
         `);
 
@@ -279,7 +282,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         const el = document.createElement('div');
         el.className = 'cursor-pointer';
         el.innerHTML = `
-          <div class="bg-[#0b111e]/90 px-1.5 py-0.5 rounded border border-[#233044] text-[9px] text-slate-300 font-medium shadow">
+          <div class="bg-[#0c1a11]/90 px-1.5 py-0.5 rounded border border-[#1c3525] text-[9px] text-emerald-200 font-medium shadow">
             🏘️ ${v.name}
           </div>
         `;
@@ -297,10 +300,10 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
   ]);
 
   return (
-    <div className="relative w-full h-full bg-[#0b111e] flex flex-col">
+    <div className="relative w-full h-full bg-[#07100a] flex flex-col">
       {/* Floating Toolbar */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 bg-[#111827]/95 p-1.5 rounded border border-[#233044] shadow text-xs">
-        <div className="flex items-center gap-1 text-slate-300 font-medium px-1.5 border-r border-[#233044]">
+      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 bg-[#0c1a11]/95 p-1.5 rounded border border-[#1c3525] shadow text-xs">
+        <div className="flex items-center gap-1 text-emerald-200 font-medium px-1.5 border-r border-[#1c3525]">
           <Layers className="w-3.5 h-3.5 text-emerald-400" />
           <span>Layers</span>
         </div>
@@ -308,7 +311,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         <button
           onClick={() => setShowCore(!showCore)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showCore ? 'bg-[#1b3d2b] text-emerald-300 border border-[#2d6144]' : 'bg-[#0b111e] text-slate-400'
+            showCore ? 'bg-[#162b1e] text-emerald-300 border border-[#2d523b]' : 'bg-[#07100a] text-emerald-600'
           }`}
         >
           Core Sanctuary
@@ -317,7 +320,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         <button
           onClick={() => setShowBuffer(!showBuffer)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showBuffer ? 'bg-[#3d2c12] text-amber-300 border border-[#61471b]' : 'bg-[#0b111e] text-slate-400'
+            showBuffer ? 'bg-[#2c1e15] text-amber-300 border border-[#5e3f2b]' : 'bg-[#07100a] text-emerald-600'
           }`}
         >
           Buffer Zone
@@ -326,7 +329,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         <button
           onClick={() => setShowStations(!showStations)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showStations ? 'bg-[#162236] text-slate-200 border border-[#233044]' : 'bg-[#0b111e] text-slate-400'
+            showStations ? 'bg-[#122417] text-emerald-200 border border-[#1c3525]' : 'bg-[#07100a] text-emerald-600'
           }`}
         >
           Stations ({stations.length})
@@ -335,7 +338,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         <button
           onClick={() => setShowTigers(!showTigers)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showTigers ? 'bg-[#162236] text-slate-200 border border-[#233044]' : 'bg-[#0b111e] text-slate-400'
+            showTigers ? 'bg-[#122417] text-emerald-200 border border-[#1c3525]' : 'bg-[#07100a] text-emerald-600'
           }`}
         >
           Tigers ({tigers.length})
@@ -344,17 +347,17 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         <button
           onClick={() => setShowAlerts(!showAlerts)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showAlerts ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#0b111e] text-slate-400'
+            showAlerts ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#07100a] text-emerald-600'
           }`}
         >
           Alerts
         </button>
 
-        <div className="pl-1 border-l border-[#233044]">
+        <div className="pl-1 border-l border-[#1c3525]">
           <select
             value={selectedFilterTiger}
             onChange={(e) => setSelectedFilterTiger(e.target.value)}
-            className="bg-[#0b111e] border border-[#233044] text-slate-200 text-[11px] rounded px-1.5 py-0.5 focus:outline-none"
+            className="bg-[#07100a] border border-[#1c3525] text-emerald-200 text-[11px] rounded px-1.5 py-0.5 focus:outline-none"
           >
             <option value="all">All Tigers</option>
             {tigers.map((t) => (
@@ -370,7 +373,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
       <div ref={mapContainerRef} className="w-full h-full flex-1" />
 
       {/* Bottom Coordinates & Legend */}
-      <div className="absolute bottom-3 left-3 z-20 bg-[#111827]/95 px-3 py-1.5 rounded border border-[#233044] flex items-center gap-3 text-[11px] text-slate-300">
+      <div className="absolute bottom-3 left-3 z-20 bg-[#0c1a11]/95 px-3 py-1.5 rounded border border-[#1c3525] flex items-center gap-3 text-[11px] text-emerald-200">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
           <span>Core</span>
@@ -383,7 +386,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
           <span className="w-2.5 h-2.5 rounded bg-rose-600"></span>
           <span>Alert</span>
         </div>
-        <div className="text-slate-400 pl-2 border-l border-[#233044] font-mono">
+        <div className="text-emerald-400 pl-2 border-l border-[#1c3525] font-mono">
           21.758° N, 79.314° E
         </div>
       </div>

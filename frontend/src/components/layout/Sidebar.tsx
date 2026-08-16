@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, FolderUp, CheckSquare, Cat, Map, AlertOctagon, 
-  Camera, FileSpreadsheet, RefreshCw, SlidersHorizontal
+  Camera, FileSpreadsheet, RefreshCw, SlidersHorizontal, Trees
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -28,12 +28,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Human Review Studio', 
           icon: CheckSquare,
           badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
-          badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+          badgeColor: 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
         },
       ]
     },
     {
-      title: 'Wildlife Intelligence',
+      title: 'Forest Intelligence',
       items: [
         { id: 'catalogue', label: 'Tiger Catalogue', icon: Cat },
         { id: 'map', label: 'Reserve GIS Map', icon: Map },
@@ -42,13 +42,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Movement Alerts', 
           icon: AlertOctagon,
           badge: activeAlertCount > 0 ? activeAlertCount : undefined,
-          badgeColor: 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+          badgeColor: 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
         },
         { id: 'stations', label: 'Camera Trap Grid', icon: Camera },
       ]
     },
     {
-      title: 'Compliance & System',
+      title: 'Data & Policies',
       items: [
         { id: 'reports', label: 'Reports & Export', icon: FileSpreadsheet },
         { id: 'sync', label: 'Synchronization Hub', icon: RefreshCw },
@@ -58,11 +58,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="w-60 bg-[#0f172a] border-r border-[#233044] flex flex-col h-[calc(100vh-3.5rem)] select-none">
+    <aside className="w-60 bg-[#09140c] border-r border-[#1c3525] flex flex-col h-[calc(100vh-3.5rem)] select-none">
       <div className="p-3 flex-1 space-y-4 overflow-y-auto">
         {sections.map((section, idx) => (
           <div key={idx} className="space-y-1">
-            <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400 px-2 py-1">
+            <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-emerald-400 px-2 py-1">
               {section.title}
             </div>
             {section.items.map((item) => {
@@ -74,12 +74,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onTabChange(item.id)}
                   className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition ${
                     isActive
-                      ? 'bg-[#1b2b3a] text-emerald-300 border border-emerald-500/30'
-                      : 'text-slate-300 hover:text-slate-100 hover:bg-[#162236] border border-transparent'
+                      ? 'bg-[#162b1e] text-emerald-200 border border-[#2d523b]'
+                      : 'text-emerald-100/70 hover:text-emerald-100 hover:bg-[#0f2115] border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-emerald-600'}`} />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
@@ -95,14 +95,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Field System Device Card */}
-      <div className="p-3 border-t border-[#233044] bg-[#0b111e]/80 text-[11px] text-slate-400 space-y-1">
+      <div className="p-3 border-t border-[#1c3525] bg-[#07100a] text-[11px] text-emerald-400/70 space-y-1">
         <div className="flex items-center justify-between font-mono text-[10px]">
           <span>Station Unit:</span>
-          <span className="text-slate-200">TURIA-HQ-01</span>
+          <span className="text-emerald-200">TURIA-HQ-01</span>
         </div>
         <div className="flex items-center justify-between font-mono text-[10px]">
-          <span>Storage:</span>
-          <span className="text-emerald-400">Local SQLite</span>
+          <span>Database:</span>
+          <span className="text-emerald-400">Offline SQLite</span>
         </div>
       </div>
     </aside>

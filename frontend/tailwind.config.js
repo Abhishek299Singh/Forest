@@ -7,36 +7,34 @@ export default {
   theme: {
     extend: {
       colors: {
-        reserve: {
-          50: '#f4f7f4',
-          100: '#e3ece3',
-          200: '#c6d9c6',
-          300: '#9ebd9f',
-          400: '#719d73',
-          500: '#4e7e51',
-          600: '#3c643f',
-          700: '#315034',
-          800: '#2a412c',
-          900: '#233725',
-          950: '#111d13',
+        forest: {
+          950: '#07100a', // deep night canopy
+          900: '#0c1a11', // dark moss undergrowth
+          850: '#112217', // woodland card base
+          800: '#162b1e', // spruce panel
+          750: '#1c3525', // pine card hover
+          700: '#23412e', // evergreen border
+          600: '#2d523b', // forest green outline
+          500: '#3d6e50', // moss green
+          400: '#4e8d67', // leaf accent
+          300: '#68b187', // light fern
+          200: '#94cca9', // pale sage
+          100: '#cbe7d7', // forest mist
+          50: '#f0fdf4',  // parchment light
         },
-        field: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          850: '#162032',
-          900: '#0f172a',
-          950: '#0a0f1d',
+        bark: {
+          900: '#1a130e',
+          800: '#2c1e15',
+          700: '#422c1e',
+          600: '#5e3f2b',
+          500: '#8a5c3e',
+          400: '#b87b53',
+          300: '#d99f77',
         },
         amberGold: {
-          500: '#d97706',
           600: '#b45309',
+          500: '#d97706',
+          400: '#f59e0b',
         }
       },
       fontFamily: {

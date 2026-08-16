@@ -51,11 +51,11 @@ export function App() {
     <AuthProvider>
       <SyncProvider>
         <WebSocketProvider>
-          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+          <div className="min-h-screen bg-[#07100a] text-[#e2f0e6] flex flex-col font-sans">
             <Header />
             <div className="flex flex-1 overflow-hidden">
               <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-              <main className="flex-1 overflow-y-auto bg-slate-950/60">
+              <main className="flex-1 overflow-y-auto bg-[#07100a]">
                 {renderContent()}
               </main>
             </div>

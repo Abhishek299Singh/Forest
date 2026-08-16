@@ -27,33 +27,33 @@ export const StationsPage: React.FC = () => {
   return (
     <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
       {/* Header & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#233044]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1c3525]">
         <div>
-          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
             <Camera className="w-5 h-5 text-emerald-400" />
             <span>Camera Trap Grid & Survey Effort Matrix</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-emerald-400/70 mt-0.5">
             Operational status, active trap-night logs, battery telemetry, and cumulative tiger captures per deployed station.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 text-xs">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 top-2.5" />
             <input
               type="text"
               placeholder="Search station or beat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#0b111e] border border-[#233044] text-slate-100 rounded pl-8 pr-3 py-1.5 focus:outline-none focus:border-emerald-500 w-52 font-sans"
+              className="bg-[#07100a] border border-[#1c3525] text-emerald-100 rounded pl-8 pr-3 py-1.5 focus:outline-none focus:border-emerald-500 w-52 font-sans"
             />
           </div>
 
           <select
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            className="bg-[#0b111e] border border-[#233044] text-slate-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+            className="bg-[#07100a] border border-[#1c3525] text-emerald-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
           >
             <option value="all">All Zones</option>
             <option value="core">Core Sanctuary</option>
@@ -67,7 +67,7 @@ export const StationsPage: React.FC = () => {
       <div className="field-card rounded overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-[#0b111e] text-slate-400 border-b border-[#233044] uppercase tracking-wider text-[10px]">
+            <thead className="bg-[#07100a] text-emerald-400 border-b border-[#1c3525] uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="p-3">Station Code & Name</th>
                 <th className="p-3">Zone</th>
@@ -78,14 +78,14 @@ export const StationsPage: React.FC = () => {
                 <th className="p-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1a2537] text-slate-300">
+            <tbody className="divide-y divide-[#122417] text-emerald-200">
               {filtered.map((st) => {
                 const isCore = st.zone === 'core';
                 return (
-                  <tr key={st.id} className="hover:bg-[#162236] transition">
+                  <tr key={st.id} className="hover:bg-[#14271a] transition">
                     <td className="p-3">
-                      <div className="font-semibold text-slate-100 font-mono text-xs">{st.code}</div>
-                      <div className="text-[11px] text-slate-400">{st.name}</div>
+                      <div className="font-semibold text-emerald-100 font-mono text-xs">{st.code}</div>
+                      <div className="text-[11px] text-emerald-400/70">{st.name}</div>
                     </td>
                     <td className="p-3">
                       <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
@@ -94,11 +94,11 @@ export const StationsPage: React.FC = () => {
                         {st.zone}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-300">{st.range_beat}</td>
-                    <td className="p-3 font-mono text-slate-400 text-[11px]">
+                    <td className="p-3 text-emerald-300">{st.range_beat}</td>
+                    <td className="p-3 font-mono text-emerald-400 text-[11px]">
                       {st.latitude.toFixed(4)}° N, {st.longitude.toFixed(4)}° E
                     </td>
-                    <td className="p-3 font-bold text-slate-100 tabular-nums font-mono">
+                    <td className="p-3 font-bold text-emerald-100 tabular-nums font-mono">
                       {st.active_trap_nights} nights
                     </td>
                     <td className="p-3 font-bold text-emerald-400 tabular-nums font-mono">
