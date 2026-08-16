@@ -4,7 +4,8 @@ import { TigerSummary, CameraStation, AlertItem } from '../types';
 import { ReserveMap } from '../components/map/ReserveMap';
 import { 
   FolderUp, Cat, AlertOctagon, Camera, CheckSquare, 
-  CloudSun, ArrowUpRight, Trees
+  CloudSun, ArrowUpRight, Trees, Clock, ShieldAlert,
+  ChevronRight, RefreshCw, CheckCircle2
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -18,6 +19,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [weather, setWeather] = useState<any>(null);
   const [gisData, setGisData] = useState<any>(null);
+  const [filterActivity, setFilterActivity] = useState<'all' | 'tigers' | 'alerts' | 'triage'>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,139 +46,220 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   }, []);
 
   const totalTrapNights = stations.reduce((acc, s) => acc + (s.active_trap_nights || 0), 0);
+  const criticalAlert = alerts.find(a => a.severity === 'CRITICAL' && a.status === 'active');
+
+  // Simulated authentic field activity log
+  const activityLogs = [
+    {
+      id: 'act-1',
+      type: 'alerts',
+      title: 'Village Fringe Alert: PTR-T-021 (Telia Male)',
+      time: '12 mins ago',
+      desc: 'Captured at ST-09 (Telia Lake Fringe). 1.1 km from Telia village boundary.',
+      tag: 'Critical',
+      tagColor: 'bg-rose-950 text-rose-300 border border-rose-800'
+    },
+    {
+      id: 'act-2',
+      type: 'tigers',
+      title: 'Tiger Sighting: PTR-T-014 (Baghin Nala Female)',
+      time: '45 mins ago',
+      desc: 'Camera ST-08 (Gumtara Buffer North) recorded bilateral flank capture. Confirmed with 94% stripe match.',
+      tag: 'Core Resident',
+      tagColor: 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+    },
+    {
+      id: 'act-3',
+      type: 'triage',
+      title: 'SD Card Ingestion: BATCH-374799002 Completed',
+      time: '1 hour ago',
+      desc: '3 images processed. 1 blank foliage photo moved to Quarantine Vault (4.5 MB saved).',
+      tag: 'Triage Run',
+      tagColor: 'bg-[#162b1e] text-emerald-300 border border-[#2d523b]'
+    },
+    {
+      id: 'act-4',
+      type: 'tigers',
+      title: 'Tiger Sighting: PTR-T-032 (Collarwali Lineage Male)',
+      time: '2 hours ago',
+      desc: 'Captured at ST-01 (Baghin Nala Crossing). Sighting within expected core territory.',
+      tag: 'Core Resident',
+      tagColor: 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+    }
+  ];
+
+  const filteredLogs = activityLogs.filter(a => filterActivity === 'all' || a.type === filterActivity);
 
   return (
-    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
-      {/* Top Field Operations Header & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0c1a11] p-4 rounded-lg border border-[#1c3525]">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
-            <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
-              <span>Pench Tiger Reserve — Forest Command & Triage Portal</span>
-            </h2>
+    <div className="p-4 md:p-5 space-y-4 max-w-[1600px] mx-auto text-xs">
+      {/* 1. Critical Operational Banner (If Active Alert Exists) */}
+      {criticalAlert && (
+        <div className="bg-[#241010] border border-[#5c1d1d] p-3.5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded bg-rose-950/80 border border-rose-800 text-rose-300 mt-0.5 sm:mt-0">
+              <AlertOctagon className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-rose-200 text-sm">
+                  Active Human-Wildlife Interface Incident
+                </span>
+                <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-900 text-rose-200 border border-rose-700">
+                  {criticalAlert.tiger_code} • {criticalAlert.callsign}
+                </span>
+              </div>
+              <p className="text-rose-300/90 text-[11px] mt-0.5 leading-relaxed">
+                {criticalAlert.explanation.what_changed} {criticalAlert.explanation.why_it_matters}
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-emerald-300/70 mt-0.5">
-            Phase-IV National Tiger Monitoring Protocol • Turia, Karmajhiri, Jamtara & Gumtara Beats
-          </p>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onNavigate('alerts')}
+              className="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 text-rose-100 font-semibold rounded border border-rose-700 transition flex items-center gap-1.5"
+            >
+              <span>Review Patrol Protocol</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Top Action Bar & Reserve Summary */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0c1a11] p-3.5 rounded-lg border border-[#1c3525]">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-[#162b1e] border border-[#2d523b] flex items-center justify-center text-emerald-400 font-bold">
+            <Trees className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-100 text-sm">
+              Turia & Karmajhiri Daily Wildlife Intelligence Overview
+            </div>
+            <div className="text-[11px] text-emerald-400/80">
+              Active Grid: 16 Trap Stations • 7 Identified Individuals • Zero Image Loss Policy
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigate('ingestion')}
-            className="px-3 py-1.5 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 border border-[#2d523b] text-xs font-semibold rounded transition flex items-center gap-2"
+            className="px-3 py-1.5 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 border border-[#2d523b] text-xs font-semibold rounded transition flex items-center gap-1.5"
           >
-            <FolderUp className="w-4 h-4 text-emerald-400" />
+            <FolderUp className="w-3.5 h-3.5 text-emerald-400" />
             <span>Ingest SD Card</span>
           </button>
           <button
             onClick={() => onNavigate('review')}
-            className="px-3 py-1.5 bg-[#2c1e15] hover:bg-[#3d2c1e] text-amber-200 border border-[#5e3f2b] text-xs font-semibold rounded transition flex items-center gap-2"
+            className="px-3 py-1.5 bg-[#2c1e15] hover:bg-[#3d2c1e] text-amber-200 border border-[#5e3f2b] text-xs font-semibold rounded transition flex items-center gap-1.5"
           >
-            <CheckSquare className="w-4 h-4 text-amber-400" />
+            <CheckSquare className="w-3.5 h-3.5 text-amber-400" />
             <span>Review Studio (2)</span>
           </button>
         </div>
       </div>
 
-      {/* Structured Metrics Bar */}
+      {/* 3. High-Density Operational KPI Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {/* Total Ingested */}
-        <div className="field-card p-3.5 space-y-1">
-          <div className="flex items-center justify-between text-xs text-emerald-300/70 font-medium">
-            <span>Total Camera Traps</span>
+        {/* Total Images */}
+        <div className="field-card p-3 space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-emerald-400/80 font-medium">
+            <span>Camera Trap Photos</span>
             <Camera className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <div className="text-xl font-bold text-emerald-100 tabular-nums font-mono">
+          <div className="text-xl font-bold text-slate-100 tabular-nums font-mono">
             {stats?.total_images ?? 128}
           </div>
-          <div className="text-[11px] text-emerald-400/80">
+          <div className="text-[10px] text-emerald-400/70">
             {stats?.triaged_images ?? 98} verified captures
           </div>
         </div>
 
-        {/* Quarantine Vault */}
-        <div className="field-card p-3.5 space-y-1">
-          <div className="flex items-center justify-between text-xs text-emerald-300/70 font-medium">
-            <span>Quarantine Rate</span>
-            <span className="text-[10px] text-amber-400 font-mono">Zero Loss</span>
+        {/* Quarantined Blanks */}
+        <div 
+          onClick={() => onNavigate('ingestion')}
+          className="field-card-interactive p-3 space-y-1 cursor-pointer"
+        >
+          <div className="flex items-center justify-between text-[11px] text-emerald-400/80 font-medium">
+            <span>Quarantine Vault</span>
+            <span className="text-[9px] text-amber-300 font-mono">Zero Loss</span>
           </div>
           <div className="text-xl font-bold text-amber-300 tabular-nums font-mono">
-            {stats?.quarantine_rate_pct ?? '24.2'}%
+            {stats?.quarantined_images ?? 30} <span className="text-xs font-normal text-emerald-400/70">({stats?.quarantine_rate_pct ?? '24.2'}%)</span>
           </div>
-          <div className="text-[11px] text-emerald-400/80">
-            {stats?.quarantined_images ?? 30} blank images preserved
+          <div className="text-[10px] text-emerald-400/70">
+            Foliage & blanks preserved
           </div>
         </div>
 
         {/* Identified Tigers */}
         <div 
           onClick={() => onNavigate('catalogue')}
-          className="field-card-interactive p-3.5 space-y-1 cursor-pointer"
+          className="field-card-interactive p-3 space-y-1 cursor-pointer"
         >
-          <div className="flex items-center justify-between text-xs text-emerald-300/70 font-medium">
+          <div className="flex items-center justify-between text-[11px] text-emerald-400/80 font-medium">
             <span>Identified Tigers</span>
             <Cat className="w-3.5 h-3.5 text-amber-400" />
           </div>
           <div className="text-xl font-bold text-amber-400 tabular-nums font-mono">
             {tigers.length || 7} Individuals
           </div>
-          <div className="text-[11px] text-emerald-400/80">
+          <div className="text-[10px] text-emerald-400/70">
             6 Resident • 1 Provisional
           </div>
         </div>
 
-        {/* Active Movement Alerts */}
+        {/* Movement Alerts */}
         <div 
           onClick={() => onNavigate('alerts')}
-          className="field-card-interactive p-3.5 space-y-1 cursor-pointer"
+          className="field-card-interactive p-3 space-y-1 cursor-pointer"
         >
-          <div className="flex items-center justify-between text-xs text-emerald-300/70 font-medium">
+          <div className="flex items-center justify-between text-[11px] text-emerald-400/80 font-medium">
             <span>Movement Alerts</span>
             <AlertOctagon className="w-3.5 h-3.5 text-rose-400" />
           </div>
           <div className="text-xl font-bold text-rose-400 tabular-nums font-mono">
             {alerts.length || 2} Active
           </div>
-          <div className="text-[11px] text-rose-300/80">
-            1 Village Fringe Incursion
+          <div className="text-[10px] text-rose-300/80">
+            1 Village Incursion Alert
           </div>
         </div>
 
         {/* Survey Effort */}
-        <div className="field-card p-3.5 space-y-1">
-          <div className="flex items-center justify-between text-xs text-emerald-300/70 font-medium">
+        <div className="field-card p-3 space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-emerald-400/80 font-medium">
             <span>Survey Effort</span>
-            <span className="text-[10px] text-emerald-400 font-mono">Active Grid</span>
+            <span className="text-[9px] text-emerald-400 font-mono">Active Matrix</span>
           </div>
-          <div className="text-xl font-bold text-emerald-100 tabular-nums font-mono">
-            {totalTrapNights || 1280} <span className="text-xs font-normal text-emerald-400">nights</span>
+          <div className="text-xl font-bold text-slate-100 tabular-nums font-mono">
+            {totalTrapNights || 1280} <span className="text-xs font-normal text-emerald-400/70">nights</span>
           </div>
-          <div className="text-[11px] text-emerald-400/80">
-            Across {stations.length || 16} deployed stations
+          <div className="text-[10px] text-emerald-400/70">
+            Across {stations.length || 16} active stations
           </div>
         </div>
       </div>
 
-      {/* Main Split Content: Reserve Map & Operational Alert Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* 4. Main Split: GIS Map + Live Incident & Telemetry Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left 2 Cols: Reserve GIS Map */}
-        <div className="lg:col-span-2 field-card p-3.5 flex flex-col h-[520px]">
+        <div className="lg:col-span-2 field-card p-3 flex flex-col h-[500px]">
           <div className="flex items-center justify-between mb-2 px-1">
-            <div>
-              <h3 className="text-xs font-bold text-emerald-200 uppercase tracking-wide flex items-center gap-1.5">
-                <Trees className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Pench Reserve Geospatial Monitoring</span>
-              </h3>
-              <p className="text-[11px] text-emerald-400/70">
-                Core Sanctuary Boundaries • Buffer Zones • Station Telemetry • Tiger Centroids
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-emerald-200 text-xs uppercase tracking-wider">
+                Geospatial Camera Grid & Tiger Movement
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-[#07100a] px-1.5 py-0.2 rounded border border-[#1c3525]">
+                MapLibre GL
+              </span>
             </div>
             <button
               onClick={() => onNavigate('map')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
+              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
             >
-              <span>Expand Full GIS</span>
+              <span>Full Spatial Map</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -192,73 +275,68 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Right 1 Col: Actionable Alert Feed & IMD Telemetry */}
-        <div className="space-y-4 flex flex-col">
-          {/* Priority Alerts Ledger */}
-          <div className="field-card p-3.5 flex-1 flex flex-col">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#1c3525]">
-              <div className="flex items-center gap-2">
-                <AlertOctagon className="w-4 h-4 text-rose-400" />
-                <h3 className="text-xs font-bold text-emerald-200 uppercase tracking-wide">
-                  Active Movement Alerts
-                </h3>
-              </div>
-              <span className="text-[10px] font-mono text-rose-300 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/60">
-                {alerts.length} Incidents
+        {/* Right 1 Col: Live Activity Stream */}
+        <div className="field-card p-3 flex flex-col h-[500px]">
+          {/* Header & Filter Buttons */}
+          <div className="pb-2 mb-2 border-b border-[#1c3525]">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-bold text-emerald-200 text-xs uppercase tracking-wider">
+                Reserve Telemetry & Activity Feed
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-[#07100a] px-1.5 py-0.2 rounded border border-[#1c3525]">
+                Real-time
               </span>
             </div>
 
-            <div className="space-y-2.5 overflow-y-auto max-h-56 pr-1 text-xs">
-              {alerts.map((al) => (
-                <div
-                  key={al.id}
-                  onClick={() => onNavigate('alerts')}
-                  className="p-2.5 rounded bg-[#07100a] border border-[#1c3525] hover:border-[#2e553c] transition cursor-pointer space-y-1.5"
+            {/* Filter pills */}
+            <div className="flex items-center gap-1 text-[10px]">
+              {(['all', 'tigers', 'alerts', 'triage'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilterActivity(f)}
+                  className={`px-2 py-0.5 rounded capitalize font-medium transition ${
+                    filterActivity === f
+                      ? 'bg-[#162b1e] text-emerald-200 border border-[#2d523b]'
+                      : 'text-emerald-500 hover:text-emerald-200'
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-emerald-100">{al.callsign} ({al.tiger_code})</span>
-                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${
-                      al.severity === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
-                    }`}>
-                      {al.severity}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-emerald-200/80 line-clamp-2 leading-relaxed">
-                    {al.explanation.what_changed}
-                  </p>
-                  <div className="text-[10px] text-emerald-400/70 flex items-center justify-between pt-1 border-t border-[#122417]">
-                    <span>Effort: {al.explanation.survey_effort}</span>
-                    <span className="text-emerald-400 font-mono">{Math.round(al.confidence * 100)}% match</span>
-                  </div>
-                </div>
+                  {f}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Meteorological Cache Widget */}
+          {/* Activity List */}
+          <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+            {filteredLogs.map((log) => (
+              <div
+                key={log.id}
+                className="p-2.5 rounded bg-[#07100a] border border-[#1c3525] space-y-1 hover:border-[#2e553c] transition"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-100 text-[11px]">{log.title}</span>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${log.tagColor}`}>
+                    {log.tag}
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                  {log.desc}
+                </p>
+                <div className="text-[9px] text-emerald-500 font-mono pt-1 border-t border-[#122417]">
+                  {log.time}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Weather footer */}
           {weather && (
-            <div className="field-card p-3.5 space-y-2 text-xs">
-              <div className="flex items-center justify-between text-emerald-200 font-semibold">
-                <div className="flex items-center gap-1.5">
-                  <CloudSun className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Pench Forest Telemetry</span>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-400 bg-[#07100a] px-1.5 py-0.5 rounded border border-[#1c3525]">Turia AWS</span>
+            <div className="pt-2 mt-2 border-t border-[#1c3525] flex items-center justify-between text-[11px] text-emerald-300">
+              <div className="flex items-center gap-1.5">
+                <CloudSun className="w-3.5 h-3.5 text-amber-400" />
+                <span>Pench AWS: <strong>{weather.temperature_c}°C</strong></span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-[#07100a] p-2 rounded border border-[#1c3525]">
-                  <span className="text-emerald-400/70 text-[10px]">Ambient Temp</span>
-                  <div className="text-sm font-bold text-emerald-100 mt-0.5 font-mono">{weather.temperature_c}°C</div>
-                </div>
-                <div className="bg-[#07100a] p-2 rounded border border-[#1c3525]">
-                  <span className="text-emerald-400/70 text-[10px]">Relative Humidity</span>
-                  <div className="text-sm font-bold text-emerald-100 mt-0.5 font-mono">{weather.humidity_pct}%</div>
-                </div>
-              </div>
-              <div className="bg-[#07100a] p-2 rounded border border-[#1c3525] text-[11px]">
-                <span className="text-emerald-400/70">Lunar Canopy Illumination:</span>
-                <span className="text-emerald-300 font-medium ml-1.5">{weather.moon_phase}</span>
-              </div>
+              <span className="text-emerald-500 text-[10px]">Humidity: {weather.humidity_pct}%</span>
             </div>
           )}
         </div>

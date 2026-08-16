@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { ReviewTask } from '../types';
-import { CheckSquare, Check, X, PlusCircle, FileText, Trees } from 'lucide-react';
+import { CheckSquare, Check, X, PlusCircle, FileText, Trees, ZoomIn, ZoomOut, Sparkles } from 'lucide-react';
 
 export const ReviewPage: React.FC = () => {
   const [tasks, setTasks] = useState<ReviewTask[]>([]);
@@ -12,6 +12,7 @@ export const ReviewPage: React.FC = () => {
   const [newCallsign, setNewCallsign] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stripeFilter, setStripeFilter] = useState<'normal' | 'contrast' | 'grayscale' | 'invert'>('normal');
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const loadTasks = async () => {
     try {
@@ -29,6 +30,7 @@ export const ReviewPage: React.FC = () => {
       setSelectedTask(detail);
       setSelectedCandidateId(detail.candidates?.[0]?.tiger_id || null);
       setReviewNotes('');
+      setZoomLevel(1);
     } catch (_) {}
   };
 
@@ -64,16 +66,23 @@ export const ReviewPage: React.FC = () => {
   };
 
   const getImageStyle = () => {
+    let filterStyle = '';
     switch (stripeFilter) {
-      case 'contrast': return { filter: 'contrast(180%) brightness(95%)' };
-      case 'grayscale': return { filter: 'grayscale(100%) contrast(150%)' };
-      case 'invert': return { filter: 'invert(100%) contrast(150%)' };
-      default: return {};
+      case 'contrast': filterStyle = 'contrast(180%) brightness(95%)'; break;
+      case 'grayscale': filterStyle = 'grayscale(100%) contrast(150%)'; break;
+      case 'invert': filterStyle = 'invert(100%) contrast(150%)'; break;
+      default: filterStyle = 'none';
     }
+    return {
+      filter: filterStyle,
+      transform: `scale(${zoomLevel})`,
+      transformOrigin: 'center center',
+      transition: 'transform 0.15s ease-out, filter 0.15s ease-out'
+    };
   };
 
   return (
-    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
+    <div className="p-4 md:p-5 space-y-4 max-w-[1500px] mx-auto text-xs">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1c3525]">
         <div>
@@ -82,11 +91,11 @@ export const ReviewPage: React.FC = () => {
             <span>Biologist Comparative Stripe Identification Studio</span>
           </h2>
           <p className="text-xs text-emerald-400/70 mt-0.5">
-            Audit ambiguous flank stripe pattern matches, confirm candidate individuals, and formally register new tigers.
+            Audit ambiguous flank stripe pattern matches (50%–85% confidence), verify bifurcations, and enroll provisional tigers.
           </p>
         </div>
         <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60">
-          {tasks.length} Pending Tasks
+          {tasks.length} Pending Tasks in Queue
         </span>
       </div>
 
@@ -97,7 +106,7 @@ export const ReviewPage: React.FC = () => {
           <p>No pending ambiguous identifications or unconfirmed captures in queue.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Left 1 Col: Task Queue */}
           <div className="space-y-2 text-xs">
             <h3 className="font-bold text-emerald-300 uppercase tracking-wider text-[11px]">
@@ -138,27 +147,46 @@ export const ReviewPage: React.FC = () => {
           {selectedTask && (
             <div className="lg:col-span-3 space-y-4">
               <div className="field-card p-4 space-y-4">
-                {/* Station & Image Context */}
+                {/* Station & Image Context & Filter Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#1c3525] text-xs">
                   <div>
                     <span className="font-bold text-emerald-100">Capture: {selectedTask.image?.filename}</span>
                     <span className="text-emerald-400/70 ml-2">Station: <strong className="text-emerald-200">{selectedTask.image?.station_code} ({selectedTask.image?.station_name})</strong></span>
                   </div>
 
-                  {/* Contrast Filter Tools for Biologists */}
-                  <div className="flex items-center gap-1 bg-[#07100a] p-0.5 rounded border border-[#1c3525] text-[11px]">
-                    <span className="text-emerald-400/70 px-2 text-[10px]">Stripe Filter:</span>
-                    {(['normal', 'contrast', 'grayscale', 'invert'] as const).map((f) => (
+                  {/* Contrast Filter Tools & Zoom */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-[#07100a] p-0.5 rounded border border-[#1c3525] text-[11px]">
                       <button
-                        key={f}
-                        onClick={() => setStripeFilter(f)}
-                        className={`px-2 py-0.5 rounded capitalize transition ${
-                          stripeFilter === f ? 'bg-[#162b1e] text-emerald-200 font-semibold' : 'text-emerald-500 hover:text-emerald-200'
-                        }`}
+                        onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.2))}
+                        className="p-1 text-emerald-400 hover:text-white"
+                        title="Zoom Out"
                       >
-                        {f}
+                        <ZoomOut className="w-3 h-3" />
                       </button>
-                    ))}
+                      <span className="text-[10px] font-mono text-emerald-400 px-1">{Math.round(zoomLevel * 100)}%</span>
+                      <button
+                        onClick={() => setZoomLevel(Math.min(2.5, zoomLevel + 0.2))}
+                        className="p-1 text-emerald-400 hover:text-white"
+                        title="Zoom In"
+                      >
+                        <ZoomIn className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-[#07100a] p-0.5 rounded border border-[#1c3525] text-[11px]">
+                      {(['normal', 'contrast', 'grayscale', 'invert'] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setStripeFilter(f)}
+                          className={`px-2 py-0.5 rounded capitalize transition ${
+                            stripeFilter === f ? 'bg-[#162b1e] text-emerald-200 font-semibold' : 'text-emerald-500 hover:text-emerald-200'
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -170,12 +198,12 @@ export const ReviewPage: React.FC = () => {
                       <span className="text-emerald-400">Target Field Capture</span>
                       <span className="text-emerald-400/70 text-[10px] font-mono capitalize">Flank: {selectedTask.image?.flank_side || 'Left'}</span>
                     </div>
-                    <div className="h-56 rounded bg-[#122417] border border-[#1c3525] overflow-hidden">
+                    <div className="h-56 rounded bg-[#122417] border border-[#1c3525] overflow-hidden flex items-center justify-center">
                       <img
                         src={selectedTask.image?.image_url}
                         alt="target"
                         style={getImageStyle()}
-                        className="w-full h-full object-cover transition-all"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="text-[10px] font-mono text-emerald-400/70 flex items-center justify-between">
@@ -226,7 +254,7 @@ export const ReviewPage: React.FC = () => {
 
                             <div className="text-right">
                               <div className="text-xs font-bold text-emerald-400 font-mono">{matchPct}% Match</div>
-                              <span className="text-[9px] text-emerald-500 uppercase font-mono">Cosine</span>
+                              <span className="text-[9px] text-emerald-500 uppercase font-mono">Cosine Sim</span>
                             </div>
                           </div>
                         );
@@ -240,7 +268,7 @@ export const ReviewPage: React.FC = () => {
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-emerald-300 flex items-center gap-1">
                       <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Reviewer Biological Rationale (Audit Record)</span>
+                      <span>Reviewer Biological Rationale (Audited Record)</span>
                     </label>
                     <input
                       type="text"
