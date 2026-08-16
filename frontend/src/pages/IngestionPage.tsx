@@ -5,6 +5,7 @@ import {
   FolderUp, HardDrive, ShieldAlert, CheckCircle2, RotateCcw, 
   Play, Layers
 } from 'lucide-react';
+import { CameraTrapImage } from '../components/common/CameraTrapImage';
 
 export const IngestionPage: React.FC = () => {
   const [folderPath, setFolderPath] = useState('demo_sd_cards/batch_01_core_turia');
@@ -284,7 +285,13 @@ export const IngestionPage: React.FC = () => {
               {quarantinedImages.map((img) => (
                 <div key={img.id} className="field-card rounded overflow-hidden flex flex-col">
                   <div className="h-36 bg-[#11141a] relative">
-                    <img src={img.thumbnail_url} alt={img.filename} className="w-full h-full object-cover" />
+                    <CameraTrapImage
+                      src={img.thumbnail_url}
+                      alt={img.filename}
+                      aspectRatio="auto"
+                      className="h-36"
+                      allowZoom={true}
+                    />
                     <span className="absolute top-2 left-2 bg-[#11141a]/90 text-amber-300 font-mono text-[10px] px-1.5 py-0.2 rounded border border-[#232834]">
                       {img.station_code || 'ST-01'}
                     </span>

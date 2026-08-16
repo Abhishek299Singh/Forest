@@ -197,3 +197,41 @@ def run_live_benchmark(iterations: int = 30):
     from app.ml.benchmark import ai_benchmark
     return ai_benchmark.run_benchmark(iterations=iterations)
 
+@router.get("/recent-detections")
+def get_recent_detections(limit: int = 6, db: Session = Depends(get_db)):
+    """
+    Returns recent verified camera-trap detections for the dashboard telemetry feed.
+    """
+    from app.db.models import TigerSighting, Tiger, CameraStation
+    sightings = (
+        db.query(TigerSighting, Tiger, CameraStation, Image)
+        .join(Tiger, TigerSighting.tiger_id == Tiger.id)
+        .join(CameraStation, TigerSighting.station_id == CameraStation.id)
+        .join(Image, TigerSighting.image_id == Image.id)
+        .order_by(TigerSighting.captured_at.desc(), TigerSighting.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    results = []
+    for s, t, st, img in sightings:
+        target_path = img.thumbnail_path or img.storage_path or img.original_path
+        if not target_path or not os.path.exists(target_path):
+            continue
+        results.append({
+            "id": s.id,
+            "tiger_id": t.id,
+            "tiger_code": t.tiger_code,
+            "callsign": t.callsign,
+            "station_code": st.code,
+            "station_name": st.name,
+            "zone": st.zone,
+            "captured_at": s.captured_at.isoformat() if s.captured_at else None,
+            "confidence": s.confidence,
+            "image_id": img.id,
+            "thumbnail_url": f"/api/v1/images/{img.id}/thumbnail",
+            "image_url": f"/api/v1/images/{img.id}/file",
+            "notes": s.notes
+        })
+    return results
+
+

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { ReviewTask } from '../types';
-import { CheckSquare, Check, X, PlusCircle, FileText, Trees, ZoomIn, ZoomOut } from 'lucide-react';
+import { CameraTrapImage } from '../components/common/CameraTrapImage';
+import { CheckSquare, Check, X, PlusCircle, Trees, ZoomIn, ZoomOut } from 'lucide-react';
 
 export const ReviewPage: React.FC = () => {
   const [tasks, setTasks] = useState<ReviewTask[]>([]);
@@ -91,7 +92,7 @@ export const ReviewPage: React.FC = () => {
             <span>Biologist Review Studio — Ambiguous Stripe Identification</span>
           </h2>
           <p className="text-[11px] text-slate-400">
-            Manual verification queue for captures with 50%–85% cosine similarity or unverified flank orientations.
+            Manual verification queue for camera captures requiring expert review and bilateral flank validation.
           </p>
         </div>
         <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-[#2a2416] text-amber-300 border border-[#44381e]">
@@ -119,23 +120,33 @@ export const ReviewPage: React.FC = () => {
                   <div
                     key={t.id}
                     onClick={() => loadTaskDetail(t.id)}
-                    className={`p-2.5 rounded border transition cursor-pointer space-y-1 ${
+                    className={`p-2.5 rounded border transition cursor-pointer space-y-1.5 ${
                       isSelected
                         ? 'bg-[#1c222c] border-slate-400'
                         : 'bg-[#141820] border-[#232834] hover:bg-[#181d26]'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-200 truncate">{t.image?.filename}</span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-medium ${
-                        t.priority === 'high' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#181d26] text-slate-400 border border-[#232834]'
-                      }`}>
-                        {t.priority.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                      <span>{t.image?.station_code || 'ST-01'}</span>
-                      <span className="capitalize">{t.task_type.replace(/_/g, ' ')}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-12 h-8 rounded overflow-hidden shrink-0">
+                        <CameraTrapImage
+                          src={t.image?.thumbnail_url}
+                          alt={t.image?.filename || 'task'}
+                          aspectRatio="video"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-slate-200 truncate text-[11px]">{t.image?.filename}</span>
+                          <span className={`text-[9px] font-mono px-1 py-0.2 rounded font-medium ${
+                            t.priority === 'high' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#181d26] text-slate-400 border border-[#232834]'
+                          }`}>
+                            {t.priority.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {t.image?.station_code || 'ST-01'} • {t.image?.captured_at?.split('T')[0] || '2026-08-16'}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -198,16 +209,20 @@ export const ReviewPage: React.FC = () => {
                       <span className="text-slate-200">Query Field Capture</span>
                       <span className="text-slate-400 text-[10px] font-mono capitalize">Flank: {selectedTask.image?.flank_side || 'Left'}</span>
                     </div>
-                    <div className="h-56 rounded bg-[#181d26] border border-[#232834] overflow-hidden flex items-center justify-center">
-                      <img
-                        src={selectedTask.image?.image_url}
-                        alt="target"
-                        style={getImageStyle()}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="h-60 rounded bg-[#181d26] border border-[#232834] overflow-hidden flex items-center justify-center relative">
+                      {selectedTask.image?.image_url ? (
+                        <img
+                          src={selectedTask.image?.image_url}
+                          alt="target"
+                          style={getImageStyle()}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-slate-500 font-mono text-xs">Image unavailable</span>
+                      )}
                     </div>
                     <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
-                      <span>{selectedTask.image?.captured_at?.replace('T', ' ').slice(0, 19)}</span>
+                      <span>{selectedTask.image?.captured_at?.replace('T', ' ').slice(0, 19) || 'N/A'}</span>
                       <span>Zone: {selectedTask.image?.zone || 'Core'}</span>
                     </div>
                   </div>
@@ -219,10 +234,11 @@ export const ReviewPage: React.FC = () => {
                       <span className="text-slate-400 text-[10px]">Select Profile to Confirm</span>
                     </div>
 
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                       {selectedTask.candidates?.map((c: any) => {
                         const isChosen = selectedCandidateId === c.tiger_id;
                         const matchPct = Math.round((c.similarity_score || c.similarity || 0.75) * 100);
+                        const refPhoto = c.reference_images?.[0]?.thumbnail_url || c.reference_images?.[0]?.crop_url;
                         return (
                           <div
                             key={c.tiger_id}
@@ -234,17 +250,12 @@ export const ReviewPage: React.FC = () => {
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
-                              <div className="w-12 h-12 rounded bg-[#11141a] overflow-hidden border border-[#232834]">
-                                {c.reference_images?.[0] ? (
-                                  <img 
-                                    src={c.reference_images[0].thumbnail_url} 
-                                    alt="ref" 
-                                    style={getImageStyle()}
-                                    className="w-full h-full object-cover" 
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-xs">🐅</div>
-                                )}
+                              <div className="w-14 h-10 rounded bg-[#11141a] overflow-hidden border border-[#232834] shrink-0">
+                                <CameraTrapImage
+                                  src={refPhoto}
+                                  alt={c.callsign}
+                                  aspectRatio="video"
+                                />
                               </div>
                               <div className="text-xs">
                                 <div className="font-semibold text-slate-200">{c.callsign}</div>

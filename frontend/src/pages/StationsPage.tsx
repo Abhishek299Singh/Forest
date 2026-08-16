@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { CameraStation } from '../types';
+import { CameraTrapImage } from '../components/common/CameraTrapImage';
 import { Camera, Search } from 'lucide-react';
 
 export const StationsPage: React.FC = () => {
@@ -34,7 +35,7 @@ export const StationsPage: React.FC = () => {
             <span>Camera Trap Deployment Grid & Survey Effort Matrix</span>
           </h2>
           <p className="text-[11px] text-slate-400">
-            Active trap-night counts, operational status, and cumulative tiger captures per deployed camera station.
+            Active trap-night counts, operational status, battery telemetry, and latest photographic captures per station.
           </p>
         </div>
 
@@ -68,20 +69,34 @@ export const StationsPage: React.FC = () => {
         <table className="w-full text-left text-xs">
           <thead className="bg-[#181d26] text-slate-400 text-[11px] border-b border-[#232834]">
             <tr>
+              <th className="p-2.5 font-medium w-24">Latest Capture</th>
               <th className="p-2.5 font-medium">Station Code & Name</th>
               <th className="p-2.5 font-medium">Zone</th>
               <th className="p-2.5 font-medium">Range & Beat</th>
               <th className="p-2.5 font-medium">Coordinates (WGS 84)</th>
               <th className="p-2.5 font-medium">Active Effort</th>
-              <th className="p-2.5 font-medium">Tiger Sightings</th>
+              <th className="p-2.5 font-medium">Tiger Captures</th>
+              <th className="p-2.5 font-medium">Battery</th>
               <th className="p-2.5 font-medium">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#232834] text-slate-300">
             {filtered.map((st) => {
               const isCore = st.zone === 'core';
+              const latestImg = st.latest_image;
               return (
                 <tr key={st.id} className="hover:bg-[#181d26] transition">
+                  <td className="p-2">
+                    <div className="w-16 h-10 rounded overflow-hidden">
+                      <CameraTrapImage
+                        src={latestImg?.thumbnail_url}
+                        alt={latestImg?.filename || st.code}
+                        aspectRatio="video"
+                        allowZoom={true}
+                        caption={latestImg ? `${latestImg.class_name.toUpperCase()}` : undefined}
+                      />
+                    </div>
+                  </td>
                   <td className="p-2.5">
                     <div className="font-semibold text-slate-100 font-mono text-xs">{st.code}</div>
                     <div className="text-[11px] text-slate-400">{st.name}</div>
@@ -102,6 +117,11 @@ export const StationsPage: React.FC = () => {
                   </td>
                   <td className="p-2.5 font-semibold text-emerald-400 tabular-nums font-mono">
                     {st.sightings_count} records
+                  </td>
+                  <td className="p-2.5 font-mono text-slate-300">
+                    <span className={st.battery_level > 50 ? 'text-emerald-400' : 'text-amber-400'}>
+                      {st.battery_level}%
+                    </span>
                   </td>
                   <td className="p-2.5">
                     <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">

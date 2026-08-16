@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -44,6 +45,30 @@ def list_stations(zone: Optional[str] = None, db: Session = Depends(get_db)):
         )
         sightings_count = db.query(TigerSighting).filter(TigerSighting.station_id == st.id).count()
         images_count = db.query(Image).filter(Image.station_id == st.id).count()
+        
+        latest_img = (
+            db.query(Image)
+            .filter(Image.station_id == st.id)
+            .order_by(Image.captured_at.desc(), Image.created_at.desc())
+            .first()
+        )
+        
+        latest_image_data = None
+        if latest_img:
+            target_path = latest_img.thumbnail_path or latest_img.storage_path or latest_img.original_path
+            if target_path and os.path.exists(target_path):
+                from app.db.models import Detection
+                det = db.query(Detection).filter(Detection.image_id == latest_img.id).first()
+                latest_image_data = {
+                    "id": latest_img.id,
+                    "filename": latest_img.filename,
+                    "thumbnail_url": f"/api/v1/images/{latest_img.id}/thumbnail",
+                    "image_url": f"/api/v1/images/{latest_img.id}/file",
+                    "captured_at": latest_img.captured_at.isoformat() if latest_img.captured_at else None,
+                    "class_name": det.class_name if det else ("blank" if latest_img.is_quarantined else "wildlife"),
+                    "confidence": det.confidence if det else 0.90,
+                    "is_quarantined": latest_img.is_quarantined
+                }
 
         results.append({
             "id": st.id,
@@ -62,7 +87,8 @@ def list_stations(zone: Optional[str] = None, db: Session = Depends(get_db)):
             "operational_days": latest_effort.operational_days if latest_effort else 30,
             "downtime_days": latest_effort.downtime_days if latest_effort else 0,
             "sightings_count": sightings_count,
-            "images_count": images_count
+            "images_count": images_count,
+            "latest_image": latest_image_data
         })
 
     return results

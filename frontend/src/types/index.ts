@@ -24,6 +24,32 @@ export interface CameraStation {
   downtime_days: number;
   sightings_count: number;
   images_count: number;
+  latest_image?: {
+    id: string;
+    filename: string;
+    thumbnail_url: string;
+    image_url: string;
+    captured_at?: string;
+    class_name: string;
+    confidence: number;
+    is_quarantined: boolean;
+  } | null;
+}
+
+export interface RecentDetection {
+  id: string;
+  tiger_id: string;
+  tiger_code: string;
+  callsign: string;
+  station_code: string;
+  station_name: string;
+  zone: string;
+  captured_at: string;
+  confidence: number;
+  image_id: string;
+  thumbnail_url: string;
+  image_url: string;
+  notes?: string;
 }
 
 export interface TigerSummary {

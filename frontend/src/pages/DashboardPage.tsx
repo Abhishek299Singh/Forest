@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ApiClient } from '../api/client';
-import { TigerSummary, CameraStation, AlertItem } from '../types';
+import { TigerSummary, CameraStation, AlertItem, RecentDetection } from '../types';
 import { ReserveMap } from '../components/map/ReserveMap';
+import { CameraTrapImage } from '../components/common/CameraTrapImage';
 import { 
   FolderUp, Cat, AlertOctagon, Camera, CheckSquare, 
   ArrowUpRight, Trees, ChevronRight
@@ -16,17 +17,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [tigers, setTigers] = useState<TigerSummary[]>([]);
   const [stations, setStations] = useState<CameraStation[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [recentDetections, setRecentDetections] = useState<RecentDetection[]>([]);
   const [weather, setWeather] = useState<any>(null);
   const [gisData, setGisData] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, tigersRes, stationsRes, alertsRes, weatherRes, gisRes] = await Promise.all([
+        const [statsRes, tigersRes, stationsRes, alertsRes, detectionsRes, weatherRes, gisRes] = await Promise.all([
           ApiClient.getTriageStats(),
           ApiClient.getTigers(),
           ApiClient.getStations(),
           ApiClient.getAlerts({ status: 'active' }),
+          ApiClient.getRecentDetections(5),
           ApiClient.getWeather(),
           ApiClient.getGIS(),
         ]);
@@ -34,6 +37,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         setTigers(tigersRes);
         setStations(stationsRes);
         setAlerts(alertsRes);
+        setRecentDetections(detectionsRes);
         setWeather(weatherRes?.data);
         setGisData(gisRes?.data);
       } catch (err) {
@@ -45,13 +49,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   const totalTrapNights = stations.reduce((acc, s) => acc + (s.active_trap_nights || 0), 0);
   const criticalAlert = alerts.find(a => a.severity === 'CRITICAL' && a.status === 'active');
-
-  // Recent Ingestion Batches table data
-  const recentBatches = [
-    { id: 'BATCH-374799002', station: 'ST-01 (Baghin Nala Crossing)', total: 3, tigers: 2, quarantined: 1, date: '16-Aug-2026 20:30' },
-    { id: 'BATCH-374798991', station: 'ST-08 (Gumtara Buffer North)', total: 3, tigers: 3, quarantined: 0, date: '16-Aug-2026 18:45' },
-    { id: 'BATCH-374798940', station: 'ST-09 (Telia Lake Fringe)', total: 3, tigers: 1, quarantined: 2, date: '16-Aug-2026 15:10' },
-  ];
 
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto text-xs">
@@ -87,7 +84,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* 2. Operational Key Metrics Strip (Utilitarian Table Format) */}
+      {/* 2. Operational Key Metrics Strip */}
       <div className="field-card p-3">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#232834] text-center">
           <div className="p-2 space-y-0.5">
@@ -161,11 +158,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Right 1 Col: Incident Queue & Quick Actions */}
+        {/* Right 1 Col: Incident Queue */}
         <div className="field-card p-3 flex flex-col h-[520px]">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#232834]">
             <span className="font-semibold text-slate-200 text-xs">
-              Active Alerts & Deviations ({alerts.length})
+              Active Movement Incidents ({alerts.length})
             </span>
             <button
               onClick={() => onNavigate('alerts')}
@@ -209,7 +206,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             )}
           </div>
 
-          {/* Quick Actions Footer */}
+          {/* Quick Action Buttons */}
           <div className="pt-2.5 mt-2 border-t border-[#232834] flex gap-2">
             <button
               onClick={() => onNavigate('ingestion')}
@@ -223,47 +220,81 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               className="flex-1 px-2.5 py-1.5 bg-[#181d26] hover:bg-[#232834] text-slate-200 rounded border border-[#2a3140] text-[11px] font-medium flex items-center justify-center gap-1.5"
             >
               <CheckSquare className="w-3.5 h-3.5 text-amber-400" />
-              <span>Review Studio (2)</span>
+              <span>Review Studio</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 4. Recent SD Card Triage Runs (Data Table) */}
+      {/* 4. REAL CAMERA-TRAP RECENT DETECTIONS TABLE (Item 7 Requirement) */}
       <div className="field-card p-3 space-y-2">
         <div className="flex items-center justify-between pb-1 border-b border-[#232834]">
-          <span className="font-semibold text-slate-200 text-xs">
-            Recent SD Card Intake Runs
-          </span>
-          <span className="text-[10px] text-slate-400 font-mono">
-            Showing last 3 batches
-          </span>
+          <div>
+            <span className="font-semibold text-slate-200 text-xs">
+              Recent Verified Camera-Trap Detections
+            </span>
+            <span className="text-[10px] text-slate-400 ml-2">
+              (Live Photographic Captures from Active Trap Grid)
+            </span>
+          </div>
+          <button
+            onClick={() => onNavigate('catalogue')}
+            className="text-[11px] text-slate-400 hover:text-white"
+          >
+            View Full Catalogue →
+          </button>
         </div>
 
-        <table className="w-full text-left text-xs">
-          <thead className="bg-[#181d26] text-slate-400 text-[11px]">
-            <tr>
-              <th className="p-2 font-medium">Batch ID</th>
-              <th className="p-2 font-medium">Station Source</th>
-              <th className="p-2 font-medium">Total Images</th>
-              <th className="p-2 font-medium">Tigers Detected</th>
-              <th className="p-2 font-medium">Quarantined Blanks</th>
-              <th className="p-2 font-medium">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#232834] text-slate-300">
-            {recentBatches.map((b) => (
-              <tr key={b.id} className="hover:bg-[#181d26]/50">
-                <td className="p-2 font-mono text-slate-200">{b.id}</td>
-                <td className="p-2">{b.station}</td>
-                <td className="p-2 font-mono tabular-nums">{b.total}</td>
-                <td className="p-2 font-mono tabular-nums text-emerald-400">{b.tigers}</td>
-                <td className="p-2 font-mono tabular-nums text-amber-400">{b.quarantined}</td>
-                <td className="p-2 font-mono text-[11px] text-slate-400">{b.date}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#181d26] text-slate-400 text-[11px]">
+              <tr>
+                <th className="p-2 font-medium w-24">Capture Image</th>
+                <th className="p-2 font-medium">Tiger Identity</th>
+                <th className="p-2 font-medium">Camera Station</th>
+                <th className="p-2 font-medium">Zone</th>
+                <th className="p-2 font-medium">Detection Timestamp</th>
+                <th className="p-2 font-medium">Confidence</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[#232834] text-slate-300">
+              {recentDetections.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-4 text-center text-slate-400">
+                    No recent camera-trap detections loaded.
+                  </td>
+                </tr>
+              ) : (
+                recentDetections.map((d) => (
+                  <tr key={d.id} className="hover:bg-[#181d26]/50">
+                    <td className="p-2">
+                      <div className="w-16 h-10 rounded overflow-hidden">
+                        <CameraTrapImage
+                          src={d.thumbnail_url}
+                          alt={d.callsign}
+                          aspectRatio="video"
+                          allowZoom={true}
+                        />
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <div className="font-medium text-slate-200">{d.callsign}</div>
+                      <div className="text-[10px] font-mono text-slate-400">{d.tiger_code}</div>
+                    </td>
+                    <td className="p-2 font-mono text-slate-300">{d.station_code} ({d.station_name})</td>
+                    <td className="p-2 capitalize">{d.zone}</td>
+                    <td className="p-2 font-mono text-slate-400 text-[11px]">
+                      {d.captured_at ? d.captured_at.replace('T', ' ').slice(0, 19) : 'N/A'}
+                    </td>
+                    <td className="p-2 font-mono text-emerald-400 font-semibold">
+                      {Math.round(d.confidence * 100)}%
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
