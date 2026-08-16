@@ -5,6 +5,7 @@ from app.db.models import CameraStation, User, Tiger, Image, SyncOutbox
 from app.services.ingestion import ingestion_manager
 from app.services.sync_engine import sync_engine
 from app.core.config import settings
+from app.api.settings import get_policies
 
 @pytest.fixture
 def db_session():
@@ -14,7 +15,7 @@ def db_session():
     session.close()
 
 @pytest.mark.asyncio
-async def test_folder_ingestion_and_sync_queue(db_session):
+async def test_folder_ingestion_and_data_quality(db_session):
     demo_folder = settings.BASE_DIR / "demo_sd_cards" / "batch_01_core_turia"
     if not demo_folder.exists():
         demo_folder = Path("demo_sd_cards/batch_01_core_turia")
@@ -28,6 +29,8 @@ async def test_folder_ingestion_and_sync_queue(db_session):
         assert report["total_images"] >= 3
         assert report["processed"] >= 3
         assert report["status"] == "completed"
+        assert "data_quality" in report
+        assert "images_per_minute" in report
 
     # Test sync outbox queuing
     sync_engine.queue_outbox(
@@ -43,3 +46,11 @@ async def test_folder_ingestion_and_sync_queue(db_session):
     # Test sync trigger
     synced_summary = await sync_engine.trigger_sync(db_session)
     assert synced_summary["pending_uploads"] == 0
+
+def test_configurable_policies():
+    policies = get_policies()
+    assert policies["core_centroid_shift_threshold_km"] == 4.5
+    assert policies["buffer_movement_threshold_km"] == 5.0
+    assert policies["village_proximity_threshold_km"] == 1.5
+    assert policies["min_observations_for_mcp"] == 5
+    assert policies["prolonged_absence_days"] == 45

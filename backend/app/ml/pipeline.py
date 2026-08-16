@@ -81,6 +81,9 @@ class TriagePipeline:
         captured_at = captured_at_hint or datetime.now(timezone.utc)
         width, height = 1920, 1080
         exif_dict = {}
+        has_exif_timestamp = False
+        has_clock_drift = False
+
         try:
             with PILImage.open(path) as img:
                 width, height = img.size
@@ -90,13 +93,19 @@ class TriagePipeline:
                     exif_time = exif.get(36867) or exif.get(306)
                     if exif_time:
                         try:
-                            captured_at = datetime.strptime(str(exif_time), "%Y:%m:%d %H:%M:%S")
+                            parsed_time = datetime.strptime(str(exif_time), "%Y:%m:%d %H:%M:%S")
+                            captured_at = parsed_time
+                            has_exif_timestamp = True
+                            
+                            # Check clock drift (> 1 year past or future from 2026 baseline)
+                            if abs((parsed_time.year - datetime.now().year)) > 2:
+                                has_clock_drift = True
                         except Exception:
-                            pass
+                            has_exif_timestamp = False
                     for k, v in exif.items():
                         if isinstance(v, (str, int, float)):
                             exif_dict[str(k)] = v
-        except Exception as e:
+        except Exception:
             # Corrupted image -> quarantine
             pass
 
@@ -319,6 +328,9 @@ class TriagePipeline:
             "confidence": confidence,
             "is_blank": is_blank,
             "is_quarantined": is_quarantined,
+            "has_exif_timestamp": has_exif_timestamp,
+            "has_clock_drift": has_clock_drift,
+            "privacy_protection_applied": is_human_blurred,
             "tiger_info": tiger_info,
             "inference_time_ms": inference_time_ms
         }

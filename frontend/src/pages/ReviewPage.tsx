@@ -310,14 +310,27 @@ export const ReviewPage: React.FC = () => {
                       </button>
                     </div>
 
-                    <button
-                      onClick={() => handleSubmitDecision('reject_candidate')}
-                      disabled={isSubmitting}
-                      className="px-3 py-1.5 bg-[#181d26] hover:bg-rose-950 text-slate-400 hover:text-rose-300 text-xs rounded transition flex items-center gap-1 border border-[#232834]"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Reject / Mark Uncertain</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const currentIndex = tasks.findIndex(t => t.id === selectedTask.id);
+                          const nextIndex = (currentIndex + 1) % tasks.length;
+                          loadTaskDetail(tasks[nextIndex].id);
+                        }}
+                        className="px-3 py-1.5 bg-[#181d26] hover:bg-[#232834] text-slate-300 text-xs rounded transition flex items-center gap-1 border border-[#2a3140]"
+                      >
+                        <span>Skip / Review Later</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleSubmitDecision('reject_candidate')}
+                        disabled={isSubmitting}
+                        className="px-3 py-1.5 bg-[#181d26] hover:bg-rose-950 text-slate-400 hover:text-rose-300 text-xs rounded transition flex items-center gap-1 border border-[#232834]"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject Match</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -252,4 +252,16 @@ export class ApiClient {
   static async getGIS() {
     return this.request<any>('/external/gis');
   }
+
+  // Configuration & Policies
+  static async getPolicies() {
+    return this.request<any>('/settings/policies');
+  }
+
+  static async updatePolicies(policies: any) {
+    return this.request<any>('/settings/policies', {
+      method: 'PUT',
+      body: JSON.stringify(policies),
+    });
+  }
 }

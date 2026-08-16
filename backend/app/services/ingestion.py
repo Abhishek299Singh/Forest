@@ -74,6 +74,10 @@ class IngestionManager:
             "human_images": 0,
             "quarantined": 0,
             "errors": 0,
+            "missing_timestamps": 0,
+            "clock_drift_warnings": 0,
+            "missing_station_coords": 0,
+            "warnings": [],
             "status": "processing",
             "start_time": time.time(),
             "end_time": None,
@@ -115,6 +119,14 @@ class IngestionManager:
                     if result.get("is_quarantined"):
                         batch_state["quarantined"] += 1
 
+                    # Check metadata quality
+                    if not result.get("has_exif_timestamp"):
+                        batch_state["missing_timestamps"] += 1
+                    if result.get("has_clock_drift"):
+                        batch_state["clock_drift_warnings"] += 1
+                    if not station_code_hint and not station_id_override:
+                        batch_state["missing_station_coords"] += 1
+
                 batch_state["items"].append(result)
 
             except Exception as e:
@@ -137,9 +149,22 @@ class IngestionManager:
         batch_state["end_time"] = time.time()
         batch_state["status"] = "completed"
         processing_time_s = round(batch_state["end_time"] - batch_state["start_time"], 2)
+        images_per_min = round((batch_state["processed"] / max(0.01, processing_time_s)) * 60, 1)
+        avg_ms_per_img = round((processing_time_s / max(1, batch_state["processed"])) * 1000, 1)
         
         # Estimate storage saved: assuming 4.5 MB per quarantined blank image
         storage_saved_mb = round(batch_state["quarantined"] * 4.5, 1)
+
+        # Generate human-readable data quality warnings list
+        warnings = []
+        if batch_state["duplicates"] > 0:
+            warnings.append(f"⚠ {batch_state['duplicates']} duplicate image(s) detected via SHA-256 deduplication")
+        if batch_state["missing_timestamps"] > 0:
+            warnings.append(f"⚠ {batch_state['missing_timestamps']} image(s) missing EXIF capture timestamp (fallback to file system date)")
+        if batch_state["clock_drift_warnings"] > 0:
+            warnings.append(f"⚠ {batch_state['clock_drift_warnings']} image(s) exhibit potential camera clock drift (>365 days offset)")
+        if batch_state["missing_station_coords"] > 0:
+            warnings.append(f"⚠ {batch_state['missing_station_coords']} image(s) lacked station folder tag (assigned default station ST-01)")
 
         batch_report = {
             "batch_id": batch_id,
@@ -155,7 +180,16 @@ class IngestionManager:
             "quarantined": batch_state["quarantined"],
             "errors": batch_state["errors"],
             "processing_time_seconds": processing_time_s,
+            "images_per_minute": images_per_min,
+            "avg_latency_ms": avg_ms_per_img,
             "estimated_storage_saved_mb": storage_saved_mb,
+            "data_quality": {
+                "missing_timestamps": batch_state["missing_timestamps"],
+                "clock_drift_warnings": batch_state["clock_drift_warnings"],
+                "duplicate_images": batch_state["duplicates"],
+                "missing_station_coords": batch_state["missing_station_coords"],
+                "warnings": warnings
+            },
             "status": "completed"
         }
 

@@ -20,6 +20,7 @@ from app.api.sync import router as sync_router
 from app.api.external import router as external_router
 from app.api.reports import router as reports_router
 from app.api.ws import router as ws_router
+from app.api.settings import router as settings_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,6 +63,7 @@ app.include_router(sync_router, prefix=settings.API_V1_STR)
 app.include_router(external_router, prefix=settings.API_V1_STR)
 app.include_router(reports_router, prefix=settings.API_V1_STR)
 app.include_router(ws_router, prefix=settings.API_V1_STR)
+app.include_router(settings_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
 def health_check():

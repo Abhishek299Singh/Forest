@@ -18,18 +18,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [stations, setStations] = useState<CameraStation[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [recentDetections, setRecentDetections] = useState<RecentDetection[]>([]);
+  const [pendingReviewsCount, setPendingReviewsCount] = useState<number>(0);
   const [weather, setWeather] = useState<any>(null);
   const [gisData, setGisData] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, tigersRes, stationsRes, alertsRes, detectionsRes, weatherRes, gisRes] = await Promise.all([
+        const [statsRes, tigersRes, stationsRes, alertsRes, detectionsRes, reviewsRes, weatherRes, gisRes] = await Promise.all([
           ApiClient.getTriageStats(),
           ApiClient.getTigers(),
           ApiClient.getStations(),
           ApiClient.getAlerts({ status: 'active' }),
           ApiClient.getRecentDetections(5),
+          ApiClient.getReviewTasks('pending'),
           ApiClient.getWeather(),
           ApiClient.getGIS(),
         ]);
@@ -38,6 +40,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         setStations(stationsRes);
         setAlerts(alertsRes);
         setRecentDetections(detectionsRes);
+        setPendingReviewsCount(Array.isArray(reviewsRes) ? reviewsRes.length : 0);
         setWeather(weatherRes?.data);
         setGisData(gisRes?.data);
       } catch (err) {
@@ -86,41 +89,59 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
       {/* 2. Operational Key Metrics Strip */}
       <div className="field-card p-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#232834] text-center">
-          <div className="p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-400 font-mono uppercase">Camera Stations</div>
-            <div className="text-lg font-semibold text-slate-100 font-mono tabular-nums">{stations.length || 16}</div>
-            <div className="text-[10px] text-slate-400">14 Core • 2 Buffer</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 divide-y sm:divide-y-0 sm:divide-x divide-[#232834] text-center">
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Total Images</div>
+            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">{stats?.total_images ?? 128}</div>
+            <div className="text-[9px] text-slate-400">{stats?.triaged_images ?? 98} valid images</div>
           </div>
 
-          <div className="p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-400 font-mono uppercase">Images Triaged</div>
-            <div className="text-lg font-semibold text-slate-100 font-mono tabular-nums">{stats?.total_images ?? 128}</div>
-            <div className="text-[10px] text-slate-400">{stats?.triaged_images ?? 98} verified captures</div>
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Blank Quarantine</div>
+            <div className="text-base font-semibold text-amber-400 font-mono tabular-nums">{stats?.quarantined_images ?? 30}</div>
+            <div className="text-[9px] text-slate-400">{stats?.quarantine_rate_pct ?? '24.2'}% zero-loss</div>
           </div>
 
-          <div className="p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-400 font-mono uppercase">Quarantine Vault</div>
-            <div className="text-lg font-semibold text-amber-400 font-mono tabular-nums">{stats?.quarantined_images ?? 30}</div>
-            <div className="text-[10px] text-slate-400">{stats?.quarantine_rate_pct ?? '24.2'}% zero-loss rate</div>
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Tiger Detections</div>
+            <div className="text-base font-semibold text-emerald-400 font-mono tabular-nums">{stats?.tiger_images ?? 88}</div>
+            <div className="text-[9px] text-slate-400">Torso crops</div>
           </div>
 
-          <div className="p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-400 font-mono uppercase">Registered Tigers</div>
-            <div className="text-lg font-semibold text-slate-100 font-mono tabular-nums">{tigers.length || 7}</div>
-            <div className="text-[10px] text-slate-400">6 Resident • 1 Transient</div>
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Known Tigers</div>
+            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">
+              {tigers.filter(t => t.status === 'resident').length || 6}
+            </div>
+            <div className="text-[9px] text-slate-400">Resident profiles</div>
           </div>
 
-          <div className="p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-400 font-mono uppercase">Active Movement Alerts</div>
-            <div className="text-lg font-semibold text-rose-400 font-mono tabular-nums">{alerts.length || 2}</div>
-            <div className="text-[10px] text-slate-400">1 Village Incursion</div>
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Potential New</div>
+            <div className="text-base font-semibold text-amber-300 font-mono tabular-nums">
+              {tigers.filter(t => t.status === 'provisional' || t.status === 'transient').length || 1}
+            </div>
+            <div className="text-[9px] text-slate-400">Provisional IDs</div>
           </div>
 
-          <div className="p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-400 font-mono uppercase">Survey Effort</div>
-            <div className="text-lg font-semibold text-slate-100 font-mono tabular-nums">{totalTrapNights || 1280}</div>
-            <div className="text-[10px] text-slate-400">Active Trap-Nights</div>
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Reviews Pending</div>
+            <div className="text-base font-semibold text-amber-400 font-mono tabular-nums">{pendingReviewsCount}</div>
+            <div className="text-[9px] text-slate-400">Biologist queue</div>
+          </div>
+
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Active Alerts</div>
+            <div className="text-base font-semibold text-rose-400 font-mono tabular-nums">{alerts.length || 2}</div>
+            <div className="text-[9px] text-slate-400">
+              {alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'HIGH').length || 1} high priority
+            </div>
+          </div>
+
+          <div className="p-1.5 space-y-0.5">
+            <div className="text-[9px] text-slate-400 font-mono uppercase">Survey Effort</div>
+            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">{totalTrapNights || 1280}</div>
+            <div className="text-[9px] text-slate-400">{stations.length || 16} active traps</div>
           </div>
         </div>
       </div>
