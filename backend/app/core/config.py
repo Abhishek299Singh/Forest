@@ -60,4 +60,28 @@ class Settings(BaseModel):
     # Privacy Protection
     BLUR_HUMAN_FACES: bool = True
 
+    @property
+    def IMAGES_DIR(self) -> Path:
+        p = self.BASE_DIR / self.IMAGE_STORAGE_PATH
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def QUARANTINE_DIR(self) -> Path:
+        p = self.BASE_DIR / self.QUARANTINE_PATH
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def CROPS_DIR(self) -> Path:
+        p = self.BASE_DIR / self.CROPS_PATH
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def WORKSPACE_DIR(self) -> Path:
+        p = self.BASE_DIR / "workspace"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
 settings = Settings()

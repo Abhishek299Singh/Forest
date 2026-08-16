@@ -1,8 +1,9 @@
 import React from 'react';
 import { 
   LayoutDashboard, FolderUp, CheckSquare, Cat, Map, AlertOctagon, 
-  Camera, FileSpreadsheet, RefreshCw, SlidersHorizontal
+  Camera, FileSpreadsheet, RefreshCw, SlidersHorizontal, Users, ShieldAlert
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -14,9 +15,12 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onTabChange,
-  pendingReviewCount = 2,
-  activeAlertCount = 2,
+  pendingReviewCount = 0,
+  activeAlertCount = 0,
 }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const sections = [
     {
       title: 'OPERATIONS',
@@ -33,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ]
     },
     {
-      title: 'MONITORING & GIS',
+      title: isAdmin ? 'MONITORING & GIS' : 'FIELD MONITORING',
       items: [
         { id: 'catalogue', label: 'Tiger Catalogue', icon: Cat },
         { id: 'map', label: 'Reserve GIS Map', icon: Map },
@@ -47,14 +51,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'stations', label: 'Camera Trap Grid', icon: Camera },
       ]
     },
-    {
-      title: 'ADMINISTRATION',
-      items: [
-        { id: 'reports', label: 'Reports & Export', icon: FileSpreadsheet },
-        { id: 'sync', label: 'Database Synchronization', icon: RefreshCw },
-        { id: 'settings', label: 'Threshold Policies', icon: SlidersHorizontal },
-      ]
-    }
+    ...(isAdmin ? [
+      {
+        title: 'ADMINISTRATION',
+        items: [
+          { id: 'users', label: 'User Management (RBAC)', icon: Users },
+          { id: 'reports', label: 'Reports & Export', icon: FileSpreadsheet },
+          { id: 'sync', label: 'Database Synchronization', icon: RefreshCw },
+          { id: 'settings', label: 'Threshold Policies', icon: SlidersHorizontal },
+        ]
+      }
+    ] : [])
   ];
 
   return (
@@ -94,15 +101,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </div>
 
-      {/* Field System Device Card */}
-      <div className="p-2.5 border-t border-[#232834] bg-[#0d1015] text-[10px] text-slate-400 space-y-0.5 font-mono">
+      {/* Field System Device Card & Authenticated Role */}
+      <div className="p-2.5 border-t border-[#232834] bg-[#0d1015] text-[10px] text-slate-400 space-y-1 font-mono">
         <div className="flex items-center justify-between">
-          <span>Terminal:</span>
-          <span className="text-slate-200">TURIA-HQ-01</span>
+          <span>Role Auth:</span>
+          <span className={`font-semibold px-1 rounded uppercase ${
+            isAdmin ? 'text-amber-300 bg-amber-950/80 border border-amber-800' : 'text-emerald-300 bg-emerald-950/80 border border-emerald-800'
+          }`}>
+            {user?.role || 'RANGER'}
+          </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span>Local Engine:</span>
-          <span className="text-emerald-400">SQLite Active</span>
+        <div className="flex items-center justify-between text-slate-500 text-[9px]">
+          <span>Terminal:</span>
+          <span className="text-slate-400">PTR-TURIA-01</span>
         </div>
       </div>
     </aside>

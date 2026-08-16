@@ -3,15 +3,23 @@ import { useSync } from '../../context/SyncContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Wifi, WifiOff, RefreshCw, Trees, Shield, HelpCircle, 
-  MapPin, Clock
+  MapPin, Clock, LogIn, LogOut, UserCheck, Key, ShieldCheck
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { status, toggleConnectivity, triggerSyncNow } = useSync();
-  const { user } = useAuth();
+  const { user, login, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState<string>('');
   const [selectedRange, setSelectedRange] = useState('Turia Core & Buffer');
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Login form
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('pench123');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -27,6 +35,35 @@ export const Header: React.FC = () => {
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setLoginError(null);
+    try {
+      await login(loginEmail, loginPassword);
+      setShowLoginModal(false);
+    } catch (err: any) {
+      setLoginError(err.message || 'Authentication failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuickSwitch = async (email: string) => {
+    setIsSubmitting(true);
+    setLoginError(null);
+    try {
+      await login(email, 'pench123');
+      setShowUserMenu(false);
+    } catch (err: any) {
+      alert(`Login failed: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <>
@@ -129,22 +166,177 @@ export const Header: React.FC = () => {
             <HelpCircle className="w-3.5 h-3.5" />
           </button>
 
-          {/* User Profile */}
-          <div className="flex items-center gap-2 pl-2 border-l border-[#232834]">
-            <div className="text-right hidden sm:block">
-              <span className="text-slate-200 font-medium block leading-tight text-[11px]">
-                {user?.full_name?.split('(')[0].trim() || 'Dr. Vivek Kamble'}
-              </span>
-              <span className="text-[9px] text-slate-400 font-mono uppercase">
-                {user?.role ? user.role.replace('_', ' ') : 'Field Biologist'}
-              </span>
-            </div>
-            <div className="w-6 h-6 rounded bg-[#232834] border border-[#2a3140] flex items-center justify-center text-slate-200 font-bold text-xs">
-              {user?.full_name?.charAt(0) || 'V'}
-            </div>
+          {/* User Profile & Auth Trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 pl-2 border-l border-[#232834] text-left hover:opacity-90 transition"
+            >
+              <div className="text-right hidden sm:block">
+                <span className="text-slate-200 font-medium block leading-tight text-[11px]">
+                  {user?.full_name?.split('(')[0].trim() || 'Field User'}
+                </span>
+                <span className={`text-[9px] font-mono uppercase font-semibold ${
+                  isAdmin ? 'text-amber-400' : 'text-emerald-400'
+                }`}>
+                  {user?.role || 'RANGER'}
+                </span>
+              </div>
+              <div className={`w-7 h-7 rounded border flex items-center justify-center font-bold text-xs ${
+                isAdmin ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-[#1b222c] text-emerald-300 border-[#2a3444]'
+              }`}>
+                {user?.full_name?.charAt(0) || 'U'}
+              </div>
+            </button>
+
+            {/* User Dropdown */}
+            {showUserMenu && (
+              <div 
+                className="absolute right-0 mt-2 w-64 bg-[#141820] border border-[#2e3544] rounded shadow-2xl p-2.5 space-y-2 z-50 text-xs"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="border-b border-[#232834] pb-2">
+                  <div className="font-semibold text-slate-100">{user?.full_name}</div>
+                  <div className="text-[10px] font-mono text-slate-400">{user?.email}</div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className={`text-[9px] font-mono uppercase px-1.5 py-0.2 rounded font-bold ${
+                      isAdmin ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                    }`}>
+                      Role: {user?.role || 'RANGER'}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500 bg-[#0f1218] px-1 py-0.2 rounded">
+                      Firebase Auth
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[9px] font-mono text-slate-500 uppercase">Field Session Role Switch:</div>
+                  <button
+                    onClick={() => handleQuickSwitch('admin@pench.gov.in')}
+                    className={`w-full text-left px-2 py-1 rounded text-[11px] font-mono flex items-center justify-between transition ${
+                      user?.email === 'admin@pench.gov.in' ? 'bg-amber-950/80 text-amber-300 border border-amber-800' : 'text-slate-300 hover:bg-[#181d26]'
+                    }`}
+                  >
+                    <span>ADMIN (Director)</span>
+                    {user?.email === 'admin@pench.gov.in' && <ShieldCheck className="w-3 h-3 text-amber-400" />}
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickSwitch('ranger@pench.gov.in')}
+                    className={`w-full text-left px-2 py-1 rounded text-[11px] font-mono flex items-center justify-between transition ${
+                      user?.email === 'ranger@pench.gov.in' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'text-slate-300 hover:bg-[#181d26]'
+                    }`}
+                  >
+                    <span>RANGER (Field Staff)</span>
+                    {user?.email === 'ranger@pench.gov.in' && <ShieldCheck className="w-3 h-3 text-emerald-400" />}
+                  </button>
+                </div>
+
+                <div className="border-t border-[#232834] pt-2 flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setShowLoginModal(true);
+                    }}
+                    className="text-[11px] text-slate-300 hover:text-white flex items-center gap-1 font-mono"
+                  >
+                    <Key className="w-3 h-3 text-slate-400" />
+                    <span>Sign In...</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      logout();
+                    }}
+                    className="text-[11px] text-rose-400 hover:text-rose-300 flex items-center gap-1 font-mono"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[#141820] border border-[#2e3544] rounded max-w-sm w-full p-4 space-y-3 shadow-2xl text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-[#232834]">
+              <div className="flex items-center gap-1.5 font-semibold text-slate-100">
+                <LogIn className="w-4 h-4 text-emerald-400" />
+                <span>Field Terminal Authentication</span>
+              </div>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loginError && (
+              <div className="p-2 bg-rose-950 border border-rose-800 rounded text-rose-200 text-[11px]">
+                {loginError}
+              </div>
+            )}
+
+            <form onSubmit={handleLoginSubmit} className="space-y-2.5">
+              <div>
+                <label className="block text-slate-400 text-[10px] uppercase font-mono mb-1">
+                  Official Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@pench.gov.in / ranger@pench.gov.in"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2.5 py-1.5 font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 text-[10px] uppercase font-mono mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2.5 py-1.5 font-mono focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="text-[10px] text-slate-400 font-mono">
+                * Verified via Firebase Auth & Pench Local SQLite Role Ledger.
+              </div>
+
+              <div className="pt-2 border-t border-[#232834] flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(false)}
+                  className="px-3 py-1.5 bg-[#1e232d] hover:bg-[#282e3c] text-slate-300 rounded border border-[#2e3544]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded font-medium transition disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Authenticating...' : 'Sign In'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Field Operator Guide Modal */}
       {showHelpModal && (

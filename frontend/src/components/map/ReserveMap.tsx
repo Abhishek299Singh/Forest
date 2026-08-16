@@ -237,8 +237,8 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
 
         el.innerHTML = `
           <div class="relative flex items-center justify-center">
-            <div class="w-7 h-7 rounded-full bg-[#162b1e] border border-amber-500 flex items-center justify-center text-xs shadow-lg">
-              🐅
+            <div class="w-6 h-6 rounded-full bg-[#1b221d] border-2 border-amber-500 flex items-center justify-center shadow-lg font-mono text-[9px] font-bold text-amber-300">
+              ID
             </div>
             <div class="absolute -bottom-4 whitespace-nowrap px-1 py-0.2 rounded bg-[#07100a] text-[9px] font-mono text-amber-300 border border-[#1c3525]">
               ${t.tiger_code}
@@ -278,8 +278,8 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         const bg = isCrit ? 'bg-rose-600' : 'bg-amber-600';
 
         el.innerHTML = `
-          <div class="w-6 h-6 rounded ${bg} text-white font-bold text-[10px] flex items-center justify-center border border-white shadow-lg">
-            ⚠️
+          <div class="w-5 h-5 rounded ${bg} text-white font-bold text-[10px] flex items-center justify-center border border-white shadow-lg font-mono">
+            !
           </div>
         `;
 

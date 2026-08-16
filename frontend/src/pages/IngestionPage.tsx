@@ -7,6 +7,7 @@ import {
   MapPin, AlertCircle, FileText, Database, Map, ArrowRight, ExternalLink
 } from 'lucide-react';
 import { CameraTrapImage } from '../components/common/CameraTrapImage';
+import { ImageDetailModal } from '../components/common/ImageDetailModal';
 
 interface IngestionPageProps {
   onNavigateToMap?: (params?: { lat?: number; lon?: number; station?: string }) => void;
@@ -25,6 +26,7 @@ export const IngestionPage: React.FC<IngestionPageProps> = ({ onNavigateToMap })
   const [quarantinedImages, setQuarantinedImages] = useState<any[]>([]);
   const [selectedQuarantineIds, setSelectedQuarantineIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'import' | 'quarantine'>('import');
+  const [selectedInspectImageId, setSelectedInspectImageId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { subscribe } = useWebSocket();
@@ -616,11 +618,22 @@ export const IngestionPage: React.FC<IngestionPageProps> = ({ onNavigateToMap })
                               <td className="p-2.5 font-mono text-slate-300">
                                 {row.longitude != null ? `${Number(row.longitude).toFixed(4)}° E` : 'N/A'}
                               </td>
-                              <td className="p-2.5 text-right">
+                              <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
+                                {row.id && (
+                                  <button
+                                    onClick={() => setSelectedInspectImageId(row.id)}
+                                    className="px-2 py-1 bg-[#181d26] hover:bg-[#232834] text-slate-200 hover:text-white rounded border border-[#2a3140] text-[11px] font-medium transition inline-flex items-center gap-1 font-mono"
+                                    title="Inspect Image, Real Crops & ML Telemetry"
+                                  >
+                                    <FileText className="w-3 h-3 text-slate-400" />
+                                    <span>Inspect</span>
+                                  </button>
+                                )}
+
                                 {hasCoords ? (
                                   <button
                                     onClick={() => handleViewOnMap(row.latitude, row.longitude, row.camera_id)}
-                                    className="px-2.5 py-1 bg-[#181d26] hover:bg-[#232834] text-emerald-400 hover:text-emerald-300 rounded border border-[#2a3140] text-[11px] font-medium transition inline-flex items-center gap-1"
+                                    className="px-2 py-1 bg-[#181d26] hover:bg-[#232834] text-emerald-400 hover:text-emerald-300 rounded border border-[#2a3140] text-[11px] font-medium transition inline-flex items-center gap-1 font-mono"
                                   >
                                     <MapPin className="w-3 h-3 text-emerald-400" />
                                     <span>Locate</span>
@@ -728,6 +741,14 @@ export const IngestionPage: React.FC<IngestionPageProps> = ({ onNavigateToMap })
             </div>
           )}
         </div>
+      )}
+
+      {/* Image Inspection & ML Telemetry Modal */}
+      {selectedInspectImageId && (
+        <ImageDetailModal
+          imageId={selectedInspectImageId}
+          onClose={() => setSelectedInspectImageId(null)}
+        />
       )}
     </div>
   );

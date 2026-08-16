@@ -66,12 +66,44 @@ export class ApiClient {
     });
   }
 
+  static async firebaseLogin(id_token: string) {
+    return this.request<any>('/auth/firebase-login', {
+      method: 'POST',
+      body: JSON.stringify({ id_token }),
+    });
+  }
+
   static async getMe() {
     return this.request<any>('/auth/me');
   }
 
   static async getUsers() {
     return this.request<any[]>('/auth/users');
+  }
+
+  static async createUser(payload: { email: string; full_name: string; password: string; role: string }) {
+    return this.request<any>('/auth/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  static async updateUserStatus(user_id: string, is_active: boolean) {
+    return this.request<any>(`/auth/users/${user_id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_active }),
+    });
+  }
+
+  static async updateUserRole(user_id: string, role: string) {
+    return this.request<any>(`/auth/users/${user_id}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  static async getImageDetails(image_id: string) {
+    return this.request<any>(`/images/${image_id}/details`);
   }
 
   // Triage & Ingestion

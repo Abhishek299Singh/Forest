@@ -208,10 +208,14 @@ class TriagePipeline:
             flank_bbox = tiger_res["flank_bbox"]
             flank_side = tiger_res["flank_side"]
 
-            # Save flank crop
+            # Save flank crop & body crop from the actual camera photo
             crop_filename = f"flank_{db_image.id}_{flank_side}.jpg"
             crop_path = settings.CROPS_DIR / crop_filename
             self.tiger_detector.crop_flank(managed_storage_path, flank_bbox, crop_path)
+
+            body_crop_filename = f"body_{db_image.id}.jpg"
+            body_crop_path = settings.CROPS_DIR / body_crop_filename
+            self.tiger_detector.crop_tiger_body(managed_storage_path, [bbox_x, bbox_y, bbox_w, bbox_h], body_crop_path)
 
             # Run Stage 3: Stripe Embedding Vectorizer
             stripe_vector = self.stripe_embedder.extract_embedding(crop_path)
@@ -298,10 +302,14 @@ class TriagePipeline:
                     db.add(sighting)
 
                     # Update tiger last seen
-                    if not assigned_tiger.first_seen or captured_at < assigned_tiger.first_seen:
-                        assigned_tiger.first_seen = captured_at
-                    if not assigned_tiger.last_seen or captured_at > assigned_tiger.last_seen:
-                        assigned_tiger.last_seen = captured_at
+                    cap_naive = captured_at.replace(tzinfo=None) if captured_at.tzinfo else captured_at
+                    fs_naive = assigned_tiger.first_seen.replace(tzinfo=None) if (assigned_tiger.first_seen and getattr(assigned_tiger.first_seen, 'tzinfo', None)) else assigned_tiger.first_seen
+                    ls_naive = assigned_tiger.last_seen.replace(tzinfo=None) if (assigned_tiger.last_seen and getattr(assigned_tiger.last_seen, 'tzinfo', None)) else assigned_tiger.last_seen
+
+                    if not fs_naive or cap_naive < fs_naive:
+                        assigned_tiger.first_seen = cap_naive
+                    if not ls_naive or cap_naive > ls_naive:
+                        assigned_tiger.last_seen = cap_naive
 
             tiger_info = {
                 "decision": decision,

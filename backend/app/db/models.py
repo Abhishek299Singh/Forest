@@ -16,10 +16,11 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
+    firebase_uid = Column(String(128), unique=True, index=True, nullable=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), default="forest_staff")  # admin, biologist, forest_staff, reviewer
+    role = Column(String(50), default="ranger")  # admin, ranger, biologist, reviewer
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)

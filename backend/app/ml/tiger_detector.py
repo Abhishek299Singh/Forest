@@ -74,20 +74,41 @@ class TigerDetector:
                 "model_version": self.model_version
             }
 
+    def crop_tiger_body(self, image_path: Path | str, bbox: list[float], save_path: Path | str) -> bool:
+        """Crops and saves the tiger body region from the real camera photo."""
+        try:
+            with PILImage.open(image_path) as img:
+                w, h = img.size
+                bx, by, bw, bh = bbox
+                left = max(0, int(bx * w))
+                top = max(0, int(by * h))
+                right = min(w, int((bx + bw) * w))
+                bottom = min(h, int((by + bh) * h))
+
+                if right > left and bottom > top:
+                    crop = img.crop((left, top, right, bottom))
+                    crop.save(save_path, "JPEG", quality=90)
+                    return True
+                return False
+        except Exception:
+            return False
+
     def crop_flank(self, image_path: Path | str, flank_bbox: list[float], save_path: Path | str) -> bool:
         """Crops and saves the flank stripe region for embedding."""
         try:
             with PILImage.open(image_path) as img:
                 w, h = img.size
                 fx, fy, fw, fh = flank_bbox
-                left = int(fx * w)
-                top = int(fy * h)
-                right = int((fx + fw) * w)
-                bottom = int((fy + fh) * h)
+                left = max(0, int(fx * w))
+                top = max(0, int(fy * h))
+                right = min(w, int((fx + fw) * w))
+                bottom = min(h, int((fy + fh) * h))
 
-                crop = img.crop((left, top, right, bottom))
-                crop.save(save_path, "JPEG", quality=90)
-                return True
+                if right > left and bottom > top:
+                    crop = img.crop((left, top, right, bottom))
+                    crop.save(save_path, "JPEG", quality=90)
+                    return True
+                return False
         except Exception:
             return False
 

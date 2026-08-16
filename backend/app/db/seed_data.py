@@ -17,6 +17,12 @@ def seed_database(db: Session):
                 role="admin"
             ),
             User(
+                email="ranger@pench.gov.in",
+                full_name="Rajesh Uikey (Field Ranger)",
+                hashed_password=get_password_hash("pench123"),
+                role="ranger"
+            ),
+            User(
                 email="biologist@pench.gov.in",
                 full_name="Priya Sengupta (Wildlife Biologist)",
                 hashed_password=get_password_hash("pench123"),
@@ -24,15 +30,9 @@ def seed_database(db: Session):
             ),
             User(
                 email="staff@pench.gov.in",
-                full_name="Rajesh Uikey (Turia Range Forest Officer)",
+                full_name="Vikas Meshram (Turia Field Staff)",
                 hashed_password=get_password_hash("pench123"),
-                role="forest_staff"
-            ),
-            User(
-                email="reviewer@pench.gov.in",
-                full_name="Amitabh Verma (Camera Trap Data Analyst)",
-                hashed_password=get_password_hash("pench123"),
-                role="reviewer"
+                role="ranger"
             )
         ]
         db.add_all(users)

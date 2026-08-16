@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.database import engine, Base, SessionLocal
+import app.db.models
 from app.db.seed_data import seed_database
 
 # Routers
