@@ -3,7 +3,7 @@ import { ApiClient } from '../api/client';
 import { useWebSocket } from '../context/WebSocketContext';
 import { 
   FolderUp, HardDrive, ShieldAlert, CheckCircle2, RotateCcw, 
-  Play, Layers, Cpu, Database, Check, Eye
+  Play, Layers
 } from 'lucide-react';
 
 export const IngestionPage: React.FC = () => {
@@ -14,7 +14,6 @@ export const IngestionPage: React.FC = () => {
   const [quarantinedImages, setQuarantinedImages] = useState<any[]>([]);
   const [selectedQuarantineIds, setSelectedQuarantineIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'import' | 'quarantine'>('import');
-  const [activeCardDrive, setActiveCardDrive] = useState('E:\\ (CUDDEBACK_SD_01) [32 GB]');
   const { subscribe } = useWebSocket();
 
   const loadQuarantine = async () => {
@@ -87,32 +86,32 @@ export const IngestionPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-4 md:p-5 space-y-4 max-w-[1500px] mx-auto text-xs">
+    <div className="p-4 space-y-4 max-w-[1600px] mx-auto text-xs">
       {/* Header & Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1c3525]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#232834]">
         <div>
-          <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
-            <FolderUp className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+            <FolderUp className="w-4 h-4 text-slate-400" />
             <span>Field SD Card Ingestion & Automated Triage</span>
           </h2>
-          <p className="text-xs text-emerald-400/70 mt-0.5">
-            Zero-loss camera trap pipeline: EXIF validation, safe blank foliage quarantine, tiger flank detection, and stripe matching.
+          <p className="text-[11px] text-slate-400">
+            Raw card processing: EXIF validation, zero-loss blank quarantine, tiger torso localization, and stripe vector matching.
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#07100a] p-1 rounded border border-[#1c3525]">
+        <div className="flex items-center gap-1 bg-[#181d26] p-0.5 rounded border border-[#2a3140]">
           <button
             onClick={() => setActiveTab('import')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition ${
-              activeTab === 'import' ? 'bg-[#162b1e] text-emerald-200 border border-[#2d523b]' : 'text-emerald-500 hover:text-emerald-200'
+            className={`px-3 py-1 rounded text-xs font-medium transition ${
+              activeTab === 'import' ? 'bg-[#232834] text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
             Folder Intake
           </button>
           <button
             onClick={() => setActiveTab('quarantine')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition flex items-center gap-1.5 ${
-              activeTab === 'quarantine' ? 'bg-[#2c1e15] text-amber-200 border border-[#5e3f2b]' : 'text-emerald-500 hover:text-emerald-200'
+            className={`px-3 py-1 rounded text-xs font-medium transition flex items-center gap-1.5 ${
+              activeTab === 'quarantine' ? 'bg-[#2a2416] text-amber-300' : 'text-slate-400 hover:text-white'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
@@ -123,131 +122,112 @@ export const IngestionPage: React.FC = () => {
 
       {activeTab === 'import' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left 2 Cols: Folder Intake & Pipeline Stepper */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Left 2 Cols: Folder Intake */}
+          <div className="lg:col-span-2 space-y-3">
             {/* Input Card */}
-            <div className="field-card p-4 space-y-3">
+            <div className="field-card p-3.5 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <HardDrive className="w-4 h-4 text-emerald-400" />
-                  <span>Select Camera Trap SD Card Source</span>
-                </h3>
-                <span className="text-[10px] font-mono text-emerald-400 bg-[#07100a] px-2 py-0.5 rounded border border-[#1c3525]">
-                  Auto-Detect Ready
+                <span className="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+                  <HardDrive className="w-4 h-4 text-slate-400" />
+                  <span>Select Camera Trap Directory</span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 bg-[#11141a] px-2 py-0.5 rounded border border-[#232834]">
+                  Ready for Ingestion
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={folderPath}
                   onChange={(e) => setFolderPath(e.target.value)}
                   placeholder="e.g. E:\DCIM\100CUDD or demo_sd_cards/batch_01_core_turia"
-                  className="flex-1 bg-[#07100a] border border-[#1c3525] text-emerald-100 rounded px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono"
+                  className="flex-1 bg-[#11141a] border border-[#232834] text-slate-100 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-slate-500 font-mono"
                 />
                 <button
                   onClick={handleStartIngest}
                   disabled={isIngesting || !folderPath}
-                  className="px-4 py-2 bg-[#162b1e] hover:bg-[#1f3b2a] disabled:opacity-50 text-emerald-200 border border-[#2d523b] text-xs font-semibold rounded transition flex items-center justify-center gap-2"
+                  className="px-4 py-1.5 bg-[#1a2e20] hover:bg-[#26452f] disabled:opacity-50 text-emerald-200 border border-[#26452f] text-xs font-medium rounded transition flex items-center justify-center gap-1.5"
                 >
-                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <Play className="w-3 h-3 fill-current" />
                   <span>{isIngesting ? 'Executing Triage...' : 'Start Triage Run'}</span>
                 </button>
               </div>
 
-              {/* Sample Card Shortcuts */}
-              <div className="pt-2.5 border-t border-[#122417]">
-                <span className="text-[11px] text-emerald-400/80 font-medium">Quick Intake Test Batches:</span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              {/* Sample Batch Presets */}
+              <div className="pt-2.5 border-t border-[#232834]">
+                <span className="text-[11px] text-slate-400">Quick Test Batches:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1.5">
                   {sampleBatches.map((b, idx) => (
                     <div
                       key={idx}
                       onClick={() => setFolderPath(b.path)}
-                      className={`p-2.5 rounded border transition cursor-pointer space-y-1 ${
+                      className={`p-2.5 rounded border transition cursor-pointer space-y-0.5 ${
                         folderPath === b.path
-                          ? 'bg-[#162b1e] border-[#2d523b] text-emerald-200'
-                          : 'bg-[#07100a] border-[#1c3525] text-emerald-400 hover:text-emerald-200 hover:border-[#2e553c]'
+                          ? 'bg-[#1c222c] border-slate-400 text-white'
+                          : 'bg-[#181d26] border-[#232834] text-slate-400 hover:text-slate-200 hover:bg-[#1f2430]'
                       }`}
                     >
-                      <div className="font-semibold text-slate-100 text-[11px]">{b.label}</div>
-                      <div className="text-[10px] text-emerald-500 font-mono">{b.camera}</div>
+                      <div className="font-medium text-slate-200 text-[11px]">{b.label}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{b.camera}</div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Visual 4-Stage Pipeline Stepper */}
-            <div className="field-card p-4 space-y-3">
-              <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">
-                Automated 4-Stage Vision & Biometrics Pipeline
+            {/* Pipeline Stage Indicators */}
+            <div className="field-card p-3 space-y-2">
+              <span className="text-[11px] font-semibold text-slate-300">
+                Automated 4-Stage Triage & Stripe Biometrics Sequence
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
-                <div className="bg-[#07100a] p-2 rounded border border-[#1c3525] space-y-1">
-                  <div className="font-mono text-emerald-400 font-bold">1. EXIF Hash</div>
-                  <div className="text-[10px] text-emerald-500">Duplicate Check</div>
+                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                  <div className="font-mono text-slate-200 font-semibold">1. EXIF Hash</div>
+                  <div className="text-[10px] text-slate-500">SHA-256 Deduplication</div>
                 </div>
-                <div className="bg-[#07100a] p-2 rounded border border-[#1c3525] space-y-1">
-                  <div className="font-mono text-emerald-400 font-bold">2. Blank Quarantine</div>
-                  <div className="text-[10px] text-emerald-500">Zero Loss Storage</div>
+                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                  <div className="font-mono text-amber-400 font-semibold">2. Blank Quarantine</div>
+                  <div className="text-[10px] text-slate-500">Zero Loss Vault</div>
                 </div>
-                <div className="bg-[#07100a] p-2 rounded border border-[#1c3525] space-y-1">
-                  <div className="font-mono text-amber-400 font-bold">3. Flank Crop</div>
-                  <div className="text-[10px] text-emerald-500">Lateral Body Box</div>
+                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                  <div className="font-mono text-slate-200 font-semibold">3. Flank Crop</div>
+                  <div className="text-[10px] text-slate-500">Bilateral Flank Isolation</div>
                 </div>
-                <div className="bg-[#07100a] p-2 rounded border border-[#1c3525] space-y-1">
-                  <div className="font-mono text-emerald-400 font-bold">4. Vector Match</div>
-                  <div className="text-[10px] text-emerald-500">Cosine Catalogue</div>
+                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                  <div className="font-mono text-emerald-400 font-semibold">4. Vector Match</div>
+                  <div className="text-[10px] text-slate-500">Cosine Catalogue Search</div>
                 </div>
               </div>
             </div>
 
-            {/* Ingestion Progress */}
-            {isIngesting && liveProgress && (
-              <div className="field-card p-4 space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-emerald-100">
-                  <span className="flex items-center gap-2">
-                    <span className="animate-spin h-3.5 w-3.5 border-2 border-emerald-500 border-t-transparent rounded-full"></span>
-                    Executing Multi-Tier Computer Vision Triage...
-                  </span>
-                  <span className="text-emerald-400 font-mono">{liveProgress.processed} / {liveProgress.total} ({liveProgress.progress_pct}%)</span>
-                </div>
-                <div className="w-full h-2 bg-[#07100a] rounded-full overflow-hidden border border-[#1c3525]">
-                  <div
-                    className="h-full bg-emerald-500 transition-all duration-200"
-                    style={{ width: `${liveProgress.progress_pct}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Ingestion Report Table */}
             {latestReport && (
-              <div className="field-card p-4 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-[#1c3525]">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-200 uppercase tracking-wide">
+              <div className="field-card p-3.5 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[#232834]">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span>Intake Verification Report</span>
                   </div>
-                  <span className="font-mono text-[11px] text-emerald-400">{latestReport.batch_id}</span>
+                  <span className="font-mono text-[11px] text-slate-400">{latestReport.batch_id}</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center text-xs">
-                  <div className="bg-[#07100a] p-2.5 rounded border border-[#1c3525]">
-                    <span className="text-emerald-400/70 text-[11px]">Processed</span>
-                    <div className="text-base font-bold text-emerald-100 mt-0.5 font-mono">{latestReport.total_images}</div>
+                  <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                    <span className="text-slate-400 text-[10px]">Processed</span>
+                    <div className="text-base font-semibold text-slate-100 mt-0.5 font-mono">{latestReport.total_images}</div>
                   </div>
-                  <div className="bg-[#07100a] p-2.5 rounded border border-[#1c3525]">
-                    <span className="text-amber-400 text-[11px]">Tiger Captures</span>
-                    <div className="text-base font-bold text-amber-400 mt-0.5 font-mono">{latestReport.tiger_images}</div>
+                  <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                    <span className="text-emerald-400 text-[10px]">Tiger Captures</span>
+                    <div className="text-base font-semibold text-emerald-400 mt-0.5 font-mono">{latestReport.tiger_images}</div>
                   </div>
-                  <div className="bg-[#07100a] p-2.5 rounded border border-[#1c3525]">
-                    <span className="text-emerald-400/70 text-[11px]">Quarantined Blanks</span>
-                    <div className="text-base font-bold text-emerald-200 mt-0.5 font-mono">{latestReport.quarantined}</div>
+                  <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                    <span className="text-amber-400 text-[10px]">Quarantined Blanks</span>
+                    <div className="text-base font-semibold text-amber-400 mt-0.5 font-mono">{latestReport.quarantined}</div>
                   </div>
-                  <div className="bg-[#07100a] p-2.5 rounded border border-[#1c3525]">
-                    <span className="text-emerald-400 text-[11px]">Storage Saved</span>
-                    <div className="text-base font-bold text-emerald-400 mt-0.5 font-mono">{latestReport.estimated_storage_saved_mb} MB</div>
+                  <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
+                    <span className="text-slate-400 text-[10px]">Storage Saved</span>
+                    <div className="text-base font-semibold text-slate-200 mt-0.5 font-mono">{latestReport.estimated_storage_saved_mb} MB</div>
                   </div>
                 </div>
               </div>
@@ -255,16 +235,16 @@ export const IngestionPage: React.FC = () => {
           </div>
 
           {/* Right 1 Col: Protocol Guidance */}
-          <div className="space-y-4 text-xs">
-            <div className="field-card p-4 space-y-2.5">
-              <h4 className="font-bold text-emerald-200 uppercase tracking-wide flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-emerald-400" />
+          <div className="space-y-3">
+            <div className="field-card p-3.5 space-y-2">
+              <span className="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-slate-400" />
                 <span>Field Ingestion Protocol</span>
-              </h4>
-              <p className="text-emerald-200/80 leading-relaxed">
+              </span>
+              <p className="text-slate-300 leading-relaxed text-[11px]">
                 Images are automatically verified against camera station coordinates, EXIF timestamp sequences, and lateral flank stripe patterns.
               </p>
-              <div className="p-2 rounded bg-[#07100a] border border-[#1c3525] text-[11px] text-emerald-400/80 space-y-1.5">
+              <div className="p-2 rounded bg-[#11141a] border border-[#232834] text-[11px] text-slate-300 space-y-1.5">
                 <div><strong>• Zero Permanent Deletion:</strong> All blank foliage frames are stored safely in the Quarantine Vault.</div>
                 <div><strong>• Stripe Re-identification:</strong> Left and right flank patterns are isolated and matched against the persistent tiger catalogue.</div>
                 <div><strong>• Survey-Effort Baseline:</strong> Station active trap-nights are calculated to avoid false alerts on newly deployed units.</div>
@@ -274,13 +254,13 @@ export const IngestionPage: React.FC = () => {
         </div>
       ) : (
         /* Quarantine Vault View */
-        <div className="space-y-4">
-          <div className="flex items-center justify-between bg-[#0c1a11] p-3.5 rounded border border-[#1c3525]">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between bg-[#181d26] p-3 rounded border border-[#232834]">
             <div>
-              <h3 className="text-xs font-bold text-emerald-200 uppercase tracking-wider">
+              <span className="font-semibold text-slate-200 text-xs">
                 Quarantine Vault ({quarantinedImages.length} Preserved Captures)
-              </h3>
-              <p className="text-[11px] text-emerald-400/70">
+              </span>
+              <p className="text-[11px] text-slate-400">
                 Preserved blank images from wind and foliage motion. Raw images remain intact on local storage and can be restored anytime.
               </p>
             </div>
@@ -288,7 +268,7 @@ export const IngestionPage: React.FC = () => {
             {selectedQuarantineIds.length > 0 && (
               <button
                 onClick={handleBatchRestore}
-                className="px-3 py-1.5 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 border border-[#2d523b] text-xs font-semibold rounded transition"
+                className="px-3 py-1 bg-[#1a2e20] hover:bg-[#26452f] text-emerald-300 border border-[#26452f] text-xs font-medium rounded transition"
               >
                 Restore Selected ({selectedQuarantineIds.length})
               </button>
@@ -296,29 +276,29 @@ export const IngestionPage: React.FC = () => {
           </div>
 
           {quarantinedImages.length === 0 ? (
-            <div className="field-card p-8 text-center text-emerald-400 text-xs">
+            <div className="field-card p-12 text-center text-slate-400 text-xs">
               Quarantine Vault is empty.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {quarantinedImages.map((img) => (
                 <div key={img.id} className="field-card rounded overflow-hidden flex flex-col">
-                  <div className="h-36 bg-[#07100a] relative">
+                  <div className="h-36 bg-[#11141a] relative">
                     <img src={img.thumbnail_url} alt={img.filename} className="w-full h-full object-cover" />
-                    <span className="absolute top-2 left-2 bg-[#07100a]/90 text-amber-300 font-mono text-[10px] font-bold px-1.5 py-0.2 rounded border border-[#1c3525]">
+                    <span className="absolute top-2 left-2 bg-[#11141a]/90 text-amber-300 font-mono text-[10px] px-1.5 py-0.2 rounded border border-[#232834]">
                       {img.station_code || 'ST-01'}
                     </span>
                   </div>
                   <div className="p-2.5 space-y-1.5 flex-1 flex flex-col justify-between text-xs">
                     <div>
-                      <div className="font-medium text-emerald-100 truncate">{img.filename}</div>
-                      <p className="text-[11px] text-emerald-400/70 mt-0.5 line-clamp-2">{img.quarantine_reason}</p>
+                      <div className="font-medium text-slate-200 truncate">{img.filename}</div>
+                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{img.quarantine_reason}</p>
                     </div>
-                    <div className="pt-2 border-t border-[#122417] flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-emerald-400">{img.file_size_kb} KB</span>
+                    <div className="pt-2 border-t border-[#232834] flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-slate-400">{img.file_size_kb} KB</span>
                       <button
                         onClick={() => handleRestore(img.id)}
-                        className="px-2 py-1 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 text-[11px] rounded transition flex items-center gap-1 border border-[#2d523b]"
+                        className="px-2 py-0.5 bg-[#181d26] hover:bg-[#232834] text-slate-300 text-[11px] rounded transition flex items-center gap-1 border border-[#2a3140]"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Restore</span>

@@ -1,5 +1,6 @@
 import pytest
 import json
+import uuid
 from datetime import datetime, timezone
 from app.services.movement_alert import movement_alert_engine
 from app.db.database import SessionLocal, Base, engine
@@ -18,9 +19,9 @@ def test_haversine_distance():
 
 @pytest.mark.asyncio
 async def test_buffer_and_village_alerts_with_explainability(db_session):
-    # Core tiger
+    unique_code = f"TEST-T-ALERT-{uuid.uuid4().hex[:6]}"
     t = Tiger(
-        tiger_code="TEST-T-CORE",
+        tiger_code=unique_code,
         callsign="Core Dominant Male",
         status="resident",
         primary_zone="Core",
@@ -32,7 +33,7 @@ async def test_buffer_and_village_alerts_with_explainability(db_session):
 
     # Village-adjacent buffer station
     st = CameraStation(
-        code="ST-VILLAGE",
+        code=f"ST-VIL-{uuid.uuid4().hex[:4]}",
         name="Village Edge Trap",
         latitude=21.7100,
         longitude=79.2300,
@@ -50,7 +51,7 @@ async def test_buffer_and_village_alerts_with_explainability(db_session):
         filename="alert_img.jpg",
         original_path="data/raw/alert_img.jpg",
         storage_path="data/images/alert_img.jpg",
-        file_hash="hash_alert_1",
+        file_hash=uuid.uuid4().hex,
         station_id=st.id,
         captured_at=now
     )

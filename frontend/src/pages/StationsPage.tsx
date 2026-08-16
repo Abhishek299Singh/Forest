@@ -25,35 +25,35 @@ export const StationsPage: React.FC = () => {
   );
 
   return (
-    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
+    <div className="p-4 space-y-4 max-w-[1600px] mx-auto text-xs">
       {/* Header & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1c3525]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#232834]">
         <div>
-          <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
-            <Camera className="w-5 h-5 text-emerald-400" />
-            <span>Camera Trap Grid & Survey Effort Matrix</span>
+          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+            <Camera className="w-4 h-4 text-slate-400" />
+            <span>Camera Trap Deployment Grid & Survey Effort Matrix</span>
           </h2>
-          <p className="text-xs text-emerald-400/70 mt-0.5">
-            Operational status, active trap-night logs, battery telemetry, and cumulative tiger captures per deployed station.
+          <p className="text-[11px] text-slate-400">
+            Active trap-night counts, operational status, and cumulative tiger captures per deployed camera station.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
             <input
               type="text"
-              placeholder="Search station or beat..."
+              placeholder="Search station code or beat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#07100a] border border-[#1c3525] text-emerald-100 rounded pl-8 pr-3 py-1.5 focus:outline-none focus:border-emerald-500 w-52 font-sans"
+              className="bg-[#181d26] border border-[#2a3140] text-slate-100 rounded pl-8 pr-2.5 py-1 text-xs focus:outline-none focus:border-slate-500 w-52 font-sans"
             />
           </div>
 
           <select
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            className="bg-[#07100a] border border-[#1c3525] text-emerald-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+            className="bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-slate-500"
           >
             <option value="all">All Zones</option>
             <option value="core">Core Sanctuary</option>
@@ -63,59 +63,57 @@ export const StationsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Structured Table */}
-      <div className="field-card rounded overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#07100a] text-emerald-400 border-b border-[#1c3525] uppercase tracking-wider text-[10px]">
-              <tr>
-                <th className="p-3">Station Code & Name</th>
-                <th className="p-3">Zone</th>
-                <th className="p-3">Range & Beat</th>
-                <th className="p-3">Coordinates</th>
-                <th className="p-3">Effort (Trap-nights)</th>
-                <th className="p-3">Tiger Captures</th>
-                <th className="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#122417] text-emerald-200">
-              {filtered.map((st) => {
-                const isCore = st.zone === 'core';
-                return (
-                  <tr key={st.id} className="hover:bg-[#14271a] transition">
-                    <td className="p-3">
-                      <div className="font-semibold text-emerald-100 font-mono text-xs">{st.code}</div>
-                      <div className="text-[11px] text-emerald-400/70">{st.name}</div>
-                    </td>
-                    <td className="p-3">
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
-                        isCore ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
-                      }`}>
-                        {st.zone}
-                      </span>
-                    </td>
-                    <td className="p-3 text-emerald-300">{st.range_beat}</td>
-                    <td className="p-3 font-mono text-emerald-400 text-[11px]">
-                      {st.latitude.toFixed(4)}° N, {st.longitude.toFixed(4)}° E
-                    </td>
-                    <td className="p-3 font-bold text-emerald-100 tabular-nums font-mono">
-                      {st.active_trap_nights} nights
-                    </td>
-                    <td className="p-3 font-bold text-emerald-400 tabular-nums font-mono">
-                      {st.sightings_count}
-                    </td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Active
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Structured Operational Table */}
+      <div className="field-card overflow-hidden">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-[#181d26] text-slate-400 text-[11px] border-b border-[#232834]">
+            <tr>
+              <th className="p-2.5 font-medium">Station Code & Name</th>
+              <th className="p-2.5 font-medium">Zone</th>
+              <th className="p-2.5 font-medium">Range & Beat</th>
+              <th className="p-2.5 font-medium">Coordinates (WGS 84)</th>
+              <th className="p-2.5 font-medium">Active Effort</th>
+              <th className="p-2.5 font-medium">Tiger Sightings</th>
+              <th className="p-2.5 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#232834] text-slate-300">
+            {filtered.map((st) => {
+              const isCore = st.zone === 'core';
+              return (
+                <tr key={st.id} className="hover:bg-[#181d26] transition">
+                  <td className="p-2.5">
+                    <div className="font-semibold text-slate-100 font-mono text-xs">{st.code}</div>
+                    <div className="text-[11px] text-slate-400">{st.name}</div>
+                  </td>
+                  <td className="p-2.5">
+                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                      isCore ? 'bg-[#1a2e20] text-emerald-300 border border-[#26452f]' : 'bg-[#2a2416] text-amber-300 border border-[#44381e]'
+                    }`}>
+                      {st.zone.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-slate-300">{st.range_beat}</td>
+                  <td className="p-2.5 font-mono text-slate-400 text-[11px]">
+                    {st.latitude.toFixed(4)}° N, {st.longitude.toFixed(4)}° E
+                  </td>
+                  <td className="p-2.5 font-semibold text-slate-100 tabular-nums font-mono">
+                    {st.active_trap_nights} trap-nights
+                  </td>
+                  <td className="p-2.5 font-semibold text-emerald-400 tabular-nums font-mono">
+                    {st.sightings_count} records
+                  </td>
+                  <td className="p-2.5">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Operational
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

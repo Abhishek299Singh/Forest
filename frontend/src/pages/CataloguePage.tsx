@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
 import { TigerSummary, TigerDetail } from '../types';
-import { Cat, Search, ChevronRight, X, Edit3 } from 'lucide-react';
+import { Cat, Search, ChevronRight, X, Edit3, Save } from 'lucide-react';
 
 export const CataloguePage: React.FC = () => {
   const [tigers, setTigers] = useState<TigerSummary[]>([]);
@@ -49,36 +49,36 @@ export const CataloguePage: React.FC = () => {
   };
 
   return (
-    <div className="p-5 space-y-5 max-w-[1500px] mx-auto">
-      {/* Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[#1c3525]">
+    <div className="p-4 space-y-4 max-w-[1600px] mx-auto text-xs">
+      {/* Header & Filters */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-[#232834]">
         <div>
-          <h2 className="text-base font-semibold text-emerald-100 flex items-center gap-2">
-            <Cat className="w-5 h-5 text-amber-500" />
-            <span>Persistent Individual Tiger Registry</span>
+          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+            <Cat className="w-4 h-4 text-slate-400" />
+            <span>Individual Tiger Registry & Flank Stripe Catalogue</span>
           </h2>
-          <p className="text-xs text-emerald-400/70 mt-0.5">
-            Photographic catalogue of resident and transient individuals with bilateral flank stripe profiles and territory estimates.
+          <p className="text-[11px] text-slate-400">
+            Persistent photographic profiles of resident and transient tigers in Pench Tiger Reserve.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search Box */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
             <input
               type="text"
-              placeholder="Search ID or callsign..."
+              placeholder="Search code or callsign..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#07100a] border border-[#1c3525] text-emerald-100 rounded pl-8 pr-3 py-1.5 focus:outline-none focus:border-emerald-500 w-48 font-sans"
+              className="bg-[#181d26] border border-[#2a3140] text-slate-100 rounded pl-8 pr-2.5 py-1 text-xs focus:outline-none focus:border-slate-500 w-48 font-sans"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#07100a] border border-[#1c3525] text-emerald-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+            className="bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-slate-500"
           >
             <option value="all">All Statuses</option>
             <option value="resident">Resident</option>
@@ -89,7 +89,7 @@ export const CataloguePage: React.FC = () => {
           <select
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            className="bg-[#07100a] border border-[#1c3525] text-emerald-200 rounded px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+            className="bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-slate-500"
           >
             <option value="all">All Zones</option>
             <option value="Core">Core Territory</option>
@@ -98,148 +98,149 @@ export const CataloguePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Registry Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tigers.map((t) => {
-          const isProv = t.status === 'provisional';
-          return (
-            <div
-              key={t.id}
-              onClick={() => handleSelectTiger(t.id)}
-              className="field-card-interactive rounded overflow-hidden cursor-pointer flex flex-col group"
-            >
-              {/* Photo Banner */}
-              <div className="h-40 bg-[#07100a] relative">
-                {t.reference_thumbnail ? (
-                  <img src={t.reference_thumbnail} alt={t.callsign} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl">🐅</div>
-                )}
-                <span className="absolute top-2.5 left-2.5 bg-[#07100a]/90 text-amber-300 font-mono text-xs font-bold px-2 py-0.5 rounded border border-[#1c3525]">
-                  {t.tiger_code}
-                </span>
-                <span className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                  isProv ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                }`}>
-                  {t.status}
-                </span>
-              </div>
-
-              {/* Details */}
-              <div className="p-3.5 space-y-2.5 flex-1 flex flex-col justify-between text-xs">
-                <div>
-                  <h3 className="font-semibold text-emerald-100 text-sm group-hover:text-emerald-400 transition">
-                    {t.callsign}
-                  </h3>
-                  <div className="text-[11px] text-emerald-400/70 mt-0.5">
-                    {t.sex} • {t.age_class} • {t.primary_zone}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#122417]">
-                  <div className="bg-[#07100a] p-2 rounded border border-[#1c3525]">
-                    <span className="text-[10px] text-emerald-400/70">Territory (MCP 95%)</span>
-                    <div className="font-bold text-emerald-400 mt-0.5 tabular-nums font-mono">{t.territory_area_km2} km²</div>
-                  </div>
-                  <div className="bg-[#07100a] p-2 rounded border border-[#1c3525]">
-                    <span className="text-[10px] text-emerald-400/70">Total Sightings</span>
-                    <div className="font-bold text-emerald-100 mt-0.5 tabular-nums font-mono">{t.sightings_count} captures</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-emerald-400/70 pt-1">
-                  <span>Last Seen: {t.last_seen ? t.last_seen.split('T')[0] : 'Recent'}</span>
-                  <span className="text-emerald-400 font-medium flex items-center gap-0.5">
-                    Dossier <ChevronRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* Main Grid: Tigers Table / Dossier List */}
+      <div className="field-card overflow-hidden">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-[#181d26] text-slate-400 text-[11px] border-b border-[#232834]">
+            <tr>
+              <th className="p-2.5 font-medium">Tiger Code</th>
+              <th className="p-2.5 font-medium">Callsign / Identity</th>
+              <th className="p-2.5 font-medium">Sex / Age Class</th>
+              <th className="p-2.5 font-medium">Primary Zone</th>
+              <th className="p-2.5 font-medium">Home Range (MCP 95%)</th>
+              <th className="p-2.5 font-medium">Sightings</th>
+              <th className="p-2.5 font-medium">Last Detection</th>
+              <th className="p-2.5 font-medium">Status</th>
+              <th className="p-2.5 font-medium text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#232834] text-slate-300">
+            {tigers.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="p-8 text-center text-slate-400">
+                  No individual tiger profiles found matching criteria.
+                </td>
+              </tr>
+            ) : (
+              tigers.map((t) => (
+                <tr 
+                  key={t.id} 
+                  onClick={() => handleSelectTiger(t.id)}
+                  className="hover:bg-[#181d26] cursor-pointer transition"
+                >
+                  <td className="p-2.5 font-mono font-semibold text-slate-100">{t.tiger_code}</td>
+                  <td className="p-2.5 font-medium text-slate-200">{t.callsign}</td>
+                  <td className="p-2.5">{t.sex} • {t.age_class}</td>
+                  <td className="p-2.5">{t.primary_zone}</td>
+                  <td className="p-2.5 font-mono tabular-nums">
+                    {t.territory_area_km2 > 0 ? `${t.territory_area_km2} km²` : 'Provisional'}
+                  </td>
+                  <td className="p-2.5 font-mono tabular-nums">{t.sightings_count} captures</td>
+                  <td className="p-2.5 font-mono text-[11px] text-slate-400">
+                    {t.last_seen ? t.last_seen.split('T')[0] : 'N/A'}
+                  </td>
+                  <td className="p-2.5">
+                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                      t.status === 'resident' ? 'bg-[#1a2e20] text-emerald-300 border border-[#26452f]' :
+                      t.status === 'transient' ? 'bg-[#2a2416] text-amber-300 border border-[#44381e]' :
+                      'bg-[#181d26] text-slate-400 border border-[#232834]'
+                    }`}>
+                      {t.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-right">
+                    <button className="text-slate-400 hover:text-white text-[11px]">
+                      View Dossier →
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Tiger Dossier Modal */}
+      {/* Selected Tiger Profile Dossier Modal */}
       {selectedTiger && (
         <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-          <div className="bg-[#0e1c12] border border-[#1c3525] rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="p-4 bg-[#07100a] border-b border-[#1c3525] flex items-center justify-between">
+          <div className="bg-[#141820] border border-[#2e3544] rounded max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl text-xs overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-3.5 bg-[#181d26] border-b border-[#232834] flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-emerald-100">{selectedTiger.callsign}</h3>
-                  <span className="text-xs font-mono text-amber-400 bg-[#122417] px-2 py-0.5 rounded border border-[#1c3525]">
+                  <h3 className="text-sm font-semibold text-slate-100">{selectedTiger.callsign}</h3>
+                  <span className="text-xs font-mono text-slate-300 bg-[#11141a] px-1.5 py-0.2 rounded border border-[#232834]">
                     {selectedTiger.tiger_code}
                   </span>
                   {selectedTiger.sightings_timeline.length >= 5 ? (
-                    <span className="text-[10px] font-mono text-emerald-400 bg-[#162b1e] px-2 py-0.5 rounded border border-[#2d523b]">
-                      Verified Home Range (MCP 95% • {selectedTiger.territory_area_km2} km²)
+                    <span className="text-[10px] font-mono text-emerald-400 bg-[#1a2e20] px-1.5 py-0.2 rounded border border-[#26452f]">
+                      Verified Range (MCP 95% • {selectedTiger.territory_area_km2} km²)
                     </span>
                   ) : (
-                    <span className="text-[10px] font-mono text-amber-300 bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/60">
-                      Provisional Centroid (N = {selectedTiger.sightings_timeline.length} &lt; 5 sightings for MCP 95%)
+                    <span className="text-[10px] font-mono text-amber-300 bg-[#2a2416] px-1.5 py-0.2 rounded border border-[#44381e]">
+                      Provisional Centroid (N = {selectedTiger.sightings_timeline.length} &lt; 5 sightings)
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-emerald-400/70 mt-0.5">
-                  {selectedTiger.sex} • {selectedTiger.age_class} • Range: {selectedTiger.primary_zone}
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {selectedTiger.sex} • {selectedTiger.age_class} • Primary Range: {selectedTiger.primary_zone}
                 </p>
               </div>
 
               <button
                 onClick={() => setSelectedTiger(null)}
-                className="p-1 rounded text-emerald-400 hover:text-white hover:bg-[#162b1e]"
+                className="p-1 rounded text-slate-400 hover:text-white"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-5 space-y-5 overflow-y-auto text-xs">
-              {/* Flank Gallery */}
-              <div className="space-y-2">
-                <h4 className="font-bold text-emerald-200 uppercase tracking-wider text-[11px]">
+            {/* Modal Content */}
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              {/* Flank Stripe Reference Profiles */}
+              <div className="space-y-1.5">
+                <span className="font-semibold text-slate-200 text-xs">
                   Flank Stripe Reference Profiles
-                </h4>
+                </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {selectedTiger.gallery.map((g) => (
-                    <div key={g.id} className="bg-[#07100a] p-2 rounded border border-[#1c3525] space-y-1">
-                      <div className="h-24 rounded bg-[#122417] overflow-hidden">
+                    <div key={g.id} className="bg-[#181d26] p-2 rounded border border-[#232834] space-y-1">
+                      <div className="h-24 rounded bg-[#11141a] overflow-hidden">
                         <img src={g.thumbnail_url} alt="flank" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="capitalize text-emerald-200">{g.flank_side} Flank</span>
-                        <span className="text-emerald-400 font-mono">{Math.round(g.quality_score * 100)}%</span>
+                        <span className="capitalize text-slate-200">{g.flank_side} Flank</span>
+                        <span className="text-slate-400 font-mono">{Math.round(g.quality_score * 100)}% quality</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Sighting Timeline */}
-              <div className="space-y-2">
-                <h4 className="font-bold text-emerald-200 uppercase tracking-wider text-[11px]">
-                  Historical Camera Trap Sightings ({selectedTiger.sightings_timeline.length})
-                </h4>
-                <div className="bg-[#07100a] rounded border border-[#1c3525] overflow-hidden">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-[#122417] text-emerald-400 border-b border-[#1c3525]">
+              {/* Sighting Timeline Table */}
+              <div className="space-y-1.5">
+                <span className="font-semibold text-slate-200 text-xs">
+                  Historical Detection Timeline ({selectedTiger.sightings_timeline.length} Captures)
+                </span>
+                <div className="bg-[#181d26] rounded border border-[#232834] overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#11141a] text-slate-400 text-[11px] border-b border-[#232834]">
                       <tr>
-                        <th className="p-2.5">Station</th>
-                        <th className="p-2.5">Zone</th>
-                        <th className="p-2.5">Coordinates</th>
-                        <th className="p-2.5">Captured Timestamp</th>
-                        <th className="p-2.5">Confidence</th>
+                        <th className="p-2 font-medium">Station Code & Name</th>
+                        <th className="p-2 font-medium">Zone</th>
+                        <th className="p-2 font-medium">Coordinates</th>
+                        <th className="p-2 font-medium">Detection Timestamp</th>
+                        <th className="p-2 font-medium">Confidence</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#122417] text-emerald-200/90">
+                    <tbody className="divide-y divide-[#232834] text-slate-300">
                       {selectedTiger.sightings_timeline.map((s) => (
-                        <tr key={s.id} className="hover:bg-[#14271a]">
-                          <td className="p-2.5 font-semibold text-emerald-100">{s.station_code} ({s.station_name})</td>
-                          <td className="p-2.5 capitalize">{s.zone}</td>
-                          <td className="p-2.5 font-mono text-[11px] text-emerald-400/80">{s.latitude.toFixed(4)}, {s.longitude.toFixed(4)}</td>
-                          <td className="p-2.5 font-mono text-emerald-400/80">{s.captured_at.replace('T', ' ').slice(0, 19)}</td>
-                          <td className="p-2.5 text-emerald-400 font-mono">{Math.round(s.confidence * 100)}%</td>
+                        <tr key={s.id} className="hover:bg-[#1f2430]">
+                          <td className="p-2 font-medium text-slate-200">{s.station_code} ({s.station_name})</td>
+                          <td className="p-2 capitalize">{s.zone}</td>
+                          <td className="p-2 font-mono text-[11px] text-slate-400">{s.latitude.toFixed(4)}, {s.longitude.toFixed(4)}</td>
+                          <td className="p-2 font-mono text-slate-300">{s.captured_at.replace('T', ' ').slice(0, 19)}</td>
+                          <td className="p-2 font-mono text-emerald-400">{Math.round(s.confidence * 100)}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -247,50 +248,52 @@ export const CataloguePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Field Notes */}
-              <div className="space-y-1.5">
+              {/* Biologist Notes Field */}
+              <div className="space-y-1.5 pt-2 border-t border-[#232834]">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-emerald-200 uppercase tracking-wider text-[11px]">
-                    Biologist Field Notes
-                  </h4>
-                  {!isEditing && (
+                  <span className="font-semibold text-slate-200 text-xs">Field Biologist Dossier Notes</span>
+                  {!isEditing ? (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                      className="text-slate-400 hover:text-white flex items-center gap-1 text-[11px]"
                     >
                       <Edit3 className="w-3 h-3" />
-                      <span>Edit</span>
+                      <span>Edit Notes</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSaveNotes}
+                      className="px-2.5 py-0.5 bg-[#1a2e20] hover:bg-[#26452f] text-emerald-300 rounded border border-[#26452f] flex items-center gap-1 text-[11px]"
+                    >
+                      <Save className="w-3 h-3" />
+                      <span>Save</span>
                     </button>
                   )}
                 </div>
+
                 {isEditing ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      className="w-full bg-[#07100a] border border-[#1c3525] text-emerald-100 rounded p-2 text-xs focus:outline-none focus:border-emerald-500 h-20"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-2.5 py-1 bg-[#162b1e] text-emerald-300 text-xs rounded"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveNotes}
-                        className="px-2.5 py-1 bg-[#162b1e] text-emerald-200 text-xs rounded border border-[#2d523b]"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
+                  <textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    rows={3}
+                    className="w-full bg-[#11141a] border border-[#232834] text-slate-200 rounded p-2 text-xs focus:outline-none focus:border-slate-500 font-sans"
+                  />
                 ) : (
-                  <p className="bg-[#07100a] p-3 rounded border border-[#1c3525] text-emerald-200/90 leading-relaxed">
-                    {selectedTiger.notes || 'No specific field notes recorded.'}
+                  <p className="text-slate-300 bg-[#181d26] p-2.5 rounded border border-[#232834] leading-relaxed text-[11px]">
+                    {selectedTiger.notes || 'No specific field notes recorded for this individual.'}
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-[#181d26] border-t border-[#232834] flex justify-end">
+              <button
+                onClick={() => setSelectedTiger(null)}
+                className="px-3 py-1 bg-[#1e232d] hover:bg-[#282e3c] text-slate-200 rounded border border-[#2e3544] text-xs font-medium"
+              >
+                Close Dossier
+              </button>
             </div>
           </div>
         </div>

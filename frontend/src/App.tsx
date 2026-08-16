@@ -23,7 +23,7 @@ export function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardPage onNavigate={(tab) => setActiveTab(tab)} />;
+        return <DashboardPage onNavigate={(tab: string) => setActiveTab(tab)} />;
       case 'ingestion':
         return <IngestionPage />;
       case 'catalogue':
@@ -43,7 +43,7 @@ export function App() {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardPage onNavigate={(tab) => setActiveTab(tab)} />;
+        return <DashboardPage onNavigate={(tab: string) => setActiveTab(tab)} />;
     }
   };
 
@@ -51,11 +51,11 @@ export function App() {
     <AuthProvider>
       <SyncProvider>
         <WebSocketProvider>
-          <div className="min-h-screen bg-[#07100a] text-[#e2f0e6] flex flex-col font-sans">
+          <div className="min-h-screen bg-[#0d1015] text-[#e1e4e8] flex flex-col font-sans select-none">
             <Header />
             <div className="flex flex-1 overflow-hidden">
               <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-              <main className="flex-1 overflow-y-auto bg-[#07100a]">
+              <main className="flex-1 overflow-y-auto bg-[#0d1015]">
                 {renderContent()}
               </main>
             </div>

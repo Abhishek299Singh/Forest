@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSync } from '../../context/SyncContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  Wifi, WifiOff, RefreshCw, Trees, Shield, Bell, HelpCircle, 
-  ChevronDown, MapPin, Clock, HardDrive
+  Wifi, WifiOff, RefreshCw, Trees, Shield, HelpCircle, 
+  MapPin, Clock
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -30,37 +30,35 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="h-14 bg-[#0a160e] border-b border-[#1b3623] px-4 flex items-center justify-between sticky top-0 z-40 select-none text-xs">
-        {/* Left: Official Emblem & Reserve Brand */}
+      <header className="h-12 bg-[#11141a] border-b border-[#232834] px-4 flex items-center justify-between sticky top-0 z-40 select-none text-xs">
+        {/* Left: Department & Reserve Identity */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-[#13271a] border border-[#274f33] flex items-center justify-center text-emerald-400 font-bold shadow-sm">
-              <Trees className="w-4 h-4 text-emerald-400" />
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded bg-[#181d26] border border-[#2a3140] flex items-center justify-center text-emerald-400 font-bold">
+              <Trees className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-100 text-sm tracking-tight">
+                <span className="font-semibold text-slate-100 text-xs tracking-tight">
                   Pench Tiger Reserve
                 </span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-[#13271a] px-1.5 py-0.2 rounded border border-[#274f33]">
+                <span className="text-[10px] font-mono text-slate-400 bg-[#181d26] px-1.5 py-0.2 rounded border border-[#2a3140]">
                   MP Forest Dept
                 </span>
               </div>
-              <div className="text-[10px] text-emerald-400/80 flex items-center gap-1 font-mono">
-                <span>Phase-IV Wildlife Intelligence</span>
-                <span>•</span>
-                <span>ID: PTR-FIELD-01</span>
+              <div className="text-[10px] text-slate-400 font-mono">
+                NTCA Phase-IV Camera Trap System • Field Terminal
               </div>
             </div>
           </div>
 
-          {/* Range Selector Dropdown */}
-          <div className="hidden lg:flex items-center gap-1.5 ml-4 pl-4 border-l border-[#1b3623]">
-            <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+          {/* Range / Beat Selector */}
+          <div className="hidden lg:flex items-center gap-1.5 ml-4 pl-4 border-l border-[#232834]">
+            <MapPin className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={selectedRange}
               onChange={(e) => setSelectedRange(e.target.value)}
-              className="bg-[#0e1f14] border border-[#1b3623] text-emerald-200 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2 py-0.5 text-[11px] focus:outline-none focus:border-slate-500 cursor-pointer"
             >
               <option value="Turia Core & Buffer">Turia Range (Core & Buffer)</option>
               <option value="Karmajhiri Sanctuary">Karmajhiri Range (Core)</option>
@@ -71,51 +69,51 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Live Clock, Sync Status, Help, Profile */}
+        {/* Right: Clock, Offline/Online Sync Status, User Profile */}
         <div className="flex items-center gap-3">
           {/* Live System Clock */}
-          <div className="hidden md:flex items-center gap-1.5 text-[11px] text-emerald-300/80 font-mono bg-[#0e1f14] px-2.5 py-1 rounded border border-[#1b3623]">
-            <Clock className="w-3 h-3 text-emerald-500" />
-            <span>{currentTime || '16-Aug-2026 • 21:40:00 IST'}</span>
+          <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-400 font-mono bg-[#181d26] px-2.5 py-0.5 rounded border border-[#2a3140]">
+            <Clock className="w-3 h-3 text-slate-400" />
+            <span>{currentTime || '16-Aug-2026 • 22:00:00 IST'}</span>
           </div>
 
           {/* Sync Status Badge */}
-          <div className="flex items-center gap-2 bg-[#0e1f14] px-2.5 py-1 rounded border border-[#1b3623]">
+          <div className="flex items-center gap-2 bg-[#181d26] px-2 py-0.5 rounded border border-[#2a3140]">
             <span className={`h-2 w-2 rounded-full ${
-              status.sync_status === 'synced' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]' :
+              status.sync_status === 'synced' ? 'bg-emerald-400' :
               status.sync_status === 'syncing' ? 'bg-amber-400 animate-pulse' :
               status.sync_status === 'error' ? 'bg-rose-500' :
-              'bg-emerald-400'
+              'bg-slate-500'
             }`} />
 
-            <span className="text-emerald-100 font-medium text-[11px]">
+            <span className="text-slate-200 font-medium text-[11px]">
               {status.is_online ? (
-                status.sync_status === 'syncing' ? 'Syncing...' : 'Central Server Online'
+                status.sync_status === 'syncing' ? 'Reconciling...' : 'Connected (PostGIS)'
               ) : (
-                'Offline Field Mode (SQLite)'
+                'Field Mode (Local SQLite)'
               )}
             </span>
 
             {status.pending_uploads > 0 && (
-              <span className="text-amber-300 font-mono font-semibold text-[10px] bg-amber-950/90 px-1.5 py-0.2 rounded border border-amber-800/80">
-                {status.pending_uploads} outbox
+              <span className="text-amber-300 font-mono text-[10px] bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-800/80">
+                {status.pending_uploads} in outbox
               </span>
             )}
 
             {/* Toggle Connectivity */}
             <button
               onClick={() => toggleConnectivity(!status.is_online)}
-              className="text-emerald-400 hover:text-emerald-200 p-0.5 transition ml-1"
+              className="text-slate-400 hover:text-slate-200 p-0.5 transition ml-1"
               title={status.is_online ? 'Disconnect from central server' : 'Connect to central server'}
             >
-              {status.is_online ? <Wifi className="w-3.5 h-3.5 text-emerald-400" /> : <WifiOff className="w-3.5 h-3.5 text-emerald-600" />}
+              {status.is_online ? <Wifi className="w-3.5 h-3.5 text-emerald-400" /> : <WifiOff className="w-3.5 h-3.5 text-slate-500" />}
             </button>
 
             {status.is_online && (
               <button
                 onClick={() => triggerSyncNow()}
-                className="text-emerald-400 hover:text-emerald-200 p-0.5 transition"
-                title="Trigger immediate sync"
+                className="text-slate-400 hover:text-slate-200 p-0.5 transition"
+                title="Trigger manual sync"
               >
                 <RefreshCw className="w-3 h-3" />
               </button>
@@ -125,75 +123,67 @@ export const Header: React.FC = () => {
           {/* Help Button */}
           <button
             onClick={() => setShowHelpModal(true)}
-            className="p-1.5 text-emerald-400 hover:text-emerald-200 hover:bg-[#13271a] rounded transition border border-[#1b3623]"
-            title="Field Manual & Keyboard Shortcuts"
+            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#232834] rounded transition border border-[#2a3140]"
+            title="Field Operator Guide"
           >
             <HelpCircle className="w-3.5 h-3.5" />
           </button>
 
-          {/* User Profile Chip */}
-          <div className="flex items-center gap-2 pl-2 border-l border-[#1b3623]">
+          {/* User Profile */}
+          <div className="flex items-center gap-2 pl-2 border-l border-[#232834]">
             <div className="text-right hidden sm:block">
-              <span className="text-slate-100 font-medium block leading-tight text-[11px]">
+              <span className="text-slate-200 font-medium block leading-tight text-[11px]">
                 {user?.full_name?.split('(')[0].trim() || 'Dr. Vivek Kamble'}
               </span>
-              <span className="text-[9px] text-emerald-400 font-mono uppercase tracking-wider">
+              <span className="text-[9px] text-slate-400 font-mono uppercase">
                 {user?.role ? user.role.replace('_', ' ') : 'Field Biologist'}
               </span>
             </div>
-            <div className="w-7 h-7 rounded bg-[#13271a] border border-[#274f33] flex items-center justify-center text-emerald-300 font-bold text-xs">
+            <div className="w-6 h-6 rounded bg-[#232834] border border-[#2a3140] flex items-center justify-center text-slate-200 font-bold text-xs">
               {user?.full_name?.charAt(0) || 'V'}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Field Manual / Keyboard Shortcuts Modal */}
+      {/* Field Operator Guide Modal */}
       {showHelpModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-          <div className="bg-[#0e1f14] border border-[#23452c] rounded-lg max-w-lg w-full p-5 space-y-4 shadow-2xl text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-[#1b3623]">
-              <div className="flex items-center gap-2 font-bold text-slate-100 text-sm">
-                <HelpCircle className="w-4 h-4 text-emerald-400" />
-                <span>Field Operator Quick Guide & Shortcuts</span>
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-[#141820] border border-[#2e3544] rounded max-w-lg w-full p-4 space-y-3 shadow-xl text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-[#232834]">
+              <div className="flex items-center gap-2 font-semibold text-slate-100 text-xs">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                <span>Field Operator Standard Operating Procedures</span>
               </div>
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="text-emerald-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-white p-1"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-emerald-200/90 leading-relaxed">
+            <div className="space-y-2.5 text-slate-300 leading-relaxed text-[11px]">
               <div>
-                <h4 className="font-semibold text-emerald-300">1. SD Card Ingestion Workflow</h4>
-                <p className="text-[11px] text-emerald-400/80 mt-0.5">
-                  Insert memory card from Cuddeback/Reconyx camera, select the folder in the <strong>SD Card Ingestion</strong> tab, and click <em>Run Forest Triage</em>. Blanks are safely quarantined with zero loss.
-                </p>
+                <span className="font-semibold text-slate-100 block">1. SD Card Ingestion</span>
+                Select camera trap directory. Automated triage classifies blanks into the Quarantine Vault with zero data loss, while tigers are forwarded for stripe matching.
               </div>
-
               <div>
-                <h4 className="font-semibold text-emerald-300">2. Biologist Stripe Verification</h4>
-                <p className="text-[11px] text-emerald-400/80 mt-0.5">
-                  In <strong>Human Review Studio</strong>, compare the captured lateral flank against reference profiles. Use contrast filters (*Grayscale, Invert Contrast*) to inspect stripe bifurcations.
-                </p>
+                <span className="font-semibold text-slate-100 block">2. Biologist Stripe Verification</span>
+                In the Review Studio, ambiguous stripe matches (50%–85%) are compared side-by-side with reference flanks using contrast filters before assignment.
               </div>
-
               <div>
-                <h4 className="font-semibold text-emerald-300">3. Offline-to-Online Sync</h4>
-                <p className="text-[11px] text-emerald-400/80 mt-0.5">
-                  All sightings and reviews are saved locally in SQLite while in the deep forest. When returning to Turia Range HQ, click the WiFi icon to upload outbox records to the Central PostGIS server.
-                </p>
+                <span className="font-semibold text-slate-100 block">3. Offline-to-Central Reconciliation</span>
+                All sightings are saved locally in SQLite while in the field. When arriving at range HQ, connect to upload outbox records to central PostGIS.
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[#1b3623] flex justify-end">
+            <div className="pt-2 border-t border-[#232834] flex justify-end">
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="px-4 py-1.5 bg-[#162b1e] hover:bg-[#1f3b2a] text-emerald-200 rounded border border-[#2d523b] font-medium"
+                className="px-3 py-1 bg-[#1e232d] hover:bg-[#282e3c] text-slate-200 rounded border border-[#2e3544] text-xs font-medium"
               >
-                Got It
+                Close
               </button>
             </div>
           </div>

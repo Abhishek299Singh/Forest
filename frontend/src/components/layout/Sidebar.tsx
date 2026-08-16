@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, FolderUp, CheckSquare, Cat, Map, AlertOctagon, 
-  Camera, FileSpreadsheet, RefreshCw, SlidersHorizontal, Trees
+  Camera, FileSpreadsheet, RefreshCw, SlidersHorizontal
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -19,21 +19,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const sections = [
     {
-      title: 'Field Operations',
+      title: 'OPERATIONS',
       items: [
         { id: 'dashboard', label: 'Command Overview', icon: LayoutDashboard },
         { id: 'ingestion', label: 'SD Card Ingestion', icon: FolderUp },
         { 
           id: 'review', 
-          label: 'Human Review Studio', 
+          label: 'Biologist Review Studio', 
           icon: CheckSquare,
           badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
-          badgeColor: 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
+          badgeColor: 'bg-amber-950 text-amber-300 border border-amber-800'
         },
       ]
     },
     {
-      title: 'Forest Intelligence',
+      title: 'MONITORING & GIS',
       items: [
         { id: 'catalogue', label: 'Tiger Catalogue', icon: Cat },
         { id: 'map', label: 'Reserve GIS Map', icon: Map },
@@ -42,27 +42,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'Movement Alerts', 
           icon: AlertOctagon,
           badge: activeAlertCount > 0 ? activeAlertCount : undefined,
-          badgeColor: 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
+          badgeColor: 'bg-rose-950 text-rose-300 border border-rose-800'
         },
         { id: 'stations', label: 'Camera Trap Grid', icon: Camera },
       ]
     },
     {
-      title: 'Data & Policies',
+      title: 'ADMINISTRATION',
       items: [
         { id: 'reports', label: 'Reports & Export', icon: FileSpreadsheet },
-        { id: 'sync', label: 'Synchronization Hub', icon: RefreshCw },
+        { id: 'sync', label: 'Database Synchronization', icon: RefreshCw },
         { id: 'settings', label: 'Threshold Policies', icon: SlidersHorizontal },
       ]
     }
   ];
 
   return (
-    <aside className="w-60 bg-[#09140c] border-r border-[#1c3525] flex flex-col h-[calc(100vh-3.5rem)] select-none">
-      <div className="p-3 flex-1 space-y-4 overflow-y-auto">
+    <aside className="w-56 bg-[#11141a] border-r border-[#232834] flex flex-col h-[calc(100vh-3rem)] select-none shrink-0 text-xs">
+      <div className="p-2.5 flex-1 space-y-4 overflow-y-auto">
         {sections.map((section, idx) => (
-          <div key={idx} className="space-y-1">
-            <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-emerald-400 px-2 py-1">
+          <div key={idx} className="space-y-0.5">
+            <div className="text-[10px] font-mono font-medium text-slate-400 px-2 py-1 tracking-wider">
               {section.title}
             </div>
             {section.items.map((item) => {
@@ -72,18 +72,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
-                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition ${
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs font-normal transition text-left ${
                     isActive
-                      ? 'bg-[#162b1e] text-emerald-200 border border-[#2d523b]'
-                      : 'text-emerald-100/70 hover:text-emerald-100 hover:bg-[#0f2115] border border-transparent'
+                      ? 'bg-[#1c222c] text-white border-l-2 border-l-emerald-500 border-t-0 border-r-0 border-b-0 pl-2 font-medium'
+                      : 'text-slate-300 hover:text-white hover:bg-[#161a22]'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                    <span>{item.label}</span>
+                  <div className="flex items-center gap-2 truncate">
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded ${item.badgeColor}`}>
+                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 ${item.badgeColor}`}>
                       {item.badge}
                     </span>
                   )}
@@ -95,14 +95,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Field System Device Card */}
-      <div className="p-3 border-t border-[#1c3525] bg-[#07100a] text-[11px] text-emerald-400/70 space-y-1">
-        <div className="flex items-center justify-between font-mono text-[10px]">
-          <span>Station Unit:</span>
-          <span className="text-emerald-200">TURIA-HQ-01</span>
+      <div className="p-2.5 border-t border-[#232834] bg-[#0d1015] text-[10px] text-slate-400 space-y-0.5 font-mono">
+        <div className="flex items-center justify-between">
+          <span>Terminal:</span>
+          <span className="text-slate-200">TURIA-HQ-01</span>
         </div>
-        <div className="flex items-center justify-between font-mono text-[10px]">
-          <span>Database:</span>
-          <span className="text-emerald-400">Offline SQLite</span>
+        <div className="flex items-center justify-between">
+          <span>Local Engine:</span>
+          <span className="text-emerald-400">SQLite Active</span>
         </div>
       </div>
     </aside>
