@@ -109,7 +109,7 @@ class TriagePipeline:
             # Corrupted image -> quarantine
             pass
 
-        # 3. Resolve Camera Station
+        # 3. Resolve Camera Station (Dynamic Registration from Folder/EXIF)
         station = None
         if station_id:
             station = db.query(CameraStation).filter(CameraStation.id == station_id).first()
@@ -117,8 +117,26 @@ class TriagePipeline:
             station = db.query(CameraStation).filter(CameraStation.code == station_code_hint).first()
         
         if not station:
-            # Pick default first station in core zone
-            station = db.query(CameraStation).first()
+            st_code = station_code_hint or "ST-01"
+            station = db.query(CameraStation).filter(CameraStation.code == st_code).first()
+            if not station:
+                zone = "core"
+                path_lower = str(path).lower()
+                if "buffer" in path_lower:
+                    zone = "buffer"
+                elif "corridor" in path_lower:
+                    zone = "corridor"
+                
+                station = CameraStation(
+                    code=st_code,
+                    name=f"Camera Station {st_code}",
+                    zone=zone,
+                    latitude=None, # Only set if extracted from EXIF; never invent fake GPS
+                    longitude=None,
+                    status="active"
+                )
+                db.add(station)
+                db.flush()
 
         # 4. Copy image to managed storage
         safe_filename = f"{int(time.time())}_{file_hash[:8]}_{path.name}"
@@ -207,46 +225,51 @@ class TriagePipeline:
             if decision == "auto_accepted" and best_match:
                 assigned_tiger = db.query(Tiger).filter(Tiger.id == best_match["tiger_id"]).first()
             elif decision == "ambiguous_review_required" or decision == "new_individual":
-                # Create provisional tiger if completely new
+                # Create dynamic tiger identity if completely new
                 if decision == "new_individual":
-                    provisional_count = db.query(Tiger).filter(Tiger.status == "provisional").count() + 1
-                    prov_code = f"PTR-T-NEW-{100 + provisional_count:04d}"
+                    total_tigers = db.query(Tiger).count()
+                    tiger_code = f"PTR-T-{total_tigers + 1:03d}"
+                    callsign = f"Individual {tiger_code}"
                     assigned_tiger = Tiger(
-                        tiger_code=prov_code,
-                        callsign=f"Provisional Individual ({prov_code})",
+                        tiger_code=tiger_code,
+                        callsign=callsign,
                         sex="Unknown",
                         age_class="Adult",
-                        status="provisional",
+                        status="resident" if confidence >= 0.85 else "provisional",
                         first_seen=captured_at,
                         last_seen=captured_at,
                         primary_zone=station.zone if station else "Core",
                         confidence=round(confidence, 3),
-                        notes=f"Auto-enrolled from triage at station {station.code if station else 'N/A'}."
+                        notes=f"Auto-enrolled from SD card intake at station {station.code if station else 'N/A'}."
                     )
                     db.add(assigned_tiger)
                     db.flush()
 
-                # Add to Human Review Task Queue
-                candidates_list = [c["tiger_id"] for c in match_res.get("top_candidates", [])]
-                scores_list = [c["similarity"] for c in match_res.get("top_candidates", [])]
-                review_task = ReviewTask(
-                    task_type="tiger_id_ambiguity" if decision == "ambiguous_review_required" else "provisional_tiger",
-                    image_id=db_image.id,
-                    candidate_tiger_ids_json=json.dumps(candidates_list),
-                    similarity_scores_json=json.dumps(scores_list),
-                    priority="high" if decision == "ambiguous_review_required" else "medium"
-                )
-                db.add(review_task)
+                # Add to Human Review Task Queue if ambiguous
+                if decision == "ambiguous_review_required":
+                    candidates_list = [c["tiger_id"] for c in match_res.get("top_candidates", [])]
+                    scores_list = [c["similarity"] for c in match_res.get("top_candidates", [])]
+                    review_task = ReviewTask(
+                        task_type="tiger_id_ambiguity",
+                        image_id=db_image.id,
+                        candidate_tiger_ids_json=json.dumps(candidates_list),
+                        similarity_scores_json=json.dumps(scores_list),
+                        priority="high"
+                    )
+                    db.add(review_task)
 
             # Store Tiger Image Crop & Embedding
             if assigned_tiger:
+                existing_ref_count = db.query(TigerImage).filter(TigerImage.tiger_id == assigned_tiger.id).count()
+                is_ref = (existing_ref_count == 0) or (confidence >= 0.85)
+
                 t_img = TigerImage(
                     tiger_id=assigned_tiger.id,
                     image_id=db_image.id,
                     flank_side=flank_side,
                     crop_path=str(crop_path),
                     quality_score=round(confidence, 3),
-                    is_reference=False
+                    is_reference=is_ref
                 )
                 db.add(t_img)
                 db.flush()

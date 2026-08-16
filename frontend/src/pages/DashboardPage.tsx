@@ -92,26 +92,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 divide-y sm:divide-y-0 sm:divide-x divide-[#232834] text-center">
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Total Images</div>
-            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">{stats?.total_images ?? 128}</div>
-            <div className="text-[9px] text-slate-400">{stats?.triaged_images ?? 98} valid images</div>
+            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">{stats?.total_images ?? 0}</div>
+            <div className="text-[9px] text-slate-400">{stats?.triaged_images ?? 0} valid images</div>
           </div>
 
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Blank Quarantine</div>
-            <div className="text-base font-semibold text-amber-400 font-mono tabular-nums">{stats?.quarantined_images ?? 30}</div>
-            <div className="text-[9px] text-slate-400">{stats?.quarantine_rate_pct ?? '24.2'}% zero-loss</div>
+            <div className="text-base font-semibold text-amber-400 font-mono tabular-nums">{stats?.quarantined_images ?? 0}</div>
+            <div className="text-[9px] text-slate-400">{stats?.quarantine_rate_pct ?? '0.0'}% zero-loss</div>
           </div>
 
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Tiger Detections</div>
-            <div className="text-base font-semibold text-emerald-400 font-mono tabular-nums">{stats?.tiger_images ?? 88}</div>
+            <div className="text-base font-semibold text-emerald-400 font-mono tabular-nums">{stats?.tiger_images ?? 0}</div>
             <div className="text-[9px] text-slate-400">Torso crops</div>
           </div>
 
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Known Tigers</div>
             <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">
-              {tigers.filter(t => t.status === 'resident').length || 6}
+              {tigers.filter(t => t.status === 'resident').length}
             </div>
             <div className="text-[9px] text-slate-400">Resident profiles</div>
           </div>
@@ -119,7 +119,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Potential New</div>
             <div className="text-base font-semibold text-amber-300 font-mono tabular-nums">
-              {tigers.filter(t => t.status === 'provisional' || t.status === 'transient').length || 1}
+              {tigers.filter(t => t.status === 'provisional' || t.status === 'transient').length}
             </div>
             <div className="text-[9px] text-slate-400">Provisional IDs</div>
           </div>
@@ -132,16 +132,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Active Alerts</div>
-            <div className="text-base font-semibold text-rose-400 font-mono tabular-nums">{alerts.length || 2}</div>
+            <div className="text-base font-semibold text-rose-400 font-mono tabular-nums">{alerts.length}</div>
             <div className="text-[9px] text-slate-400">
-              {alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'HIGH').length || 1} high priority
+              {alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'HIGH').length} high priority
             </div>
           </div>
 
           <div className="p-1.5 space-y-0.5">
             <div className="text-[9px] text-slate-400 font-mono uppercase">Survey Effort</div>
-            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">{totalTrapNights || 1280}</div>
-            <div className="text-[9px] text-slate-400">{stations.length || 16} active traps</div>
+            <div className="text-base font-semibold text-slate-100 font-mono tabular-nums">{totalTrapNights || 0}</div>
+            <div className="text-[9px] text-slate-400">{stations.length} active traps</div>
           </div>
         </div>
       </div>
@@ -156,7 +156,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 Pench Reserve Camera Trap Grid & Spatial Occupancy
               </span>
               <span className="text-[10px] text-slate-400 ml-2">
-                (Turia & Karmajhiri Ranges • 16 Trap Stations)
+                ({stations.length} Trap Stations Configured)
               </span>
             </div>
             <button

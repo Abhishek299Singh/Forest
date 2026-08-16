@@ -15,6 +15,9 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/triage", tags=["Triage & Ingestion"])
 
+class ScanFolderRequest(BaseModel):
+    folder_path: str
+
 class IngestFolderRequest(BaseModel):
     folder_path: str
     station_id: Optional[str] = None
@@ -23,6 +26,25 @@ class QuarantineActionRequest(BaseModel):
     image_ids: List[str]
     action: str  # "restore", "confirm_blank", "delete_quarantine_flag"
     notes: Optional[str] = None
+
+@router.post("/scan-folder")
+def scan_folder_preview(
+    req: ScanFolderRequest,
+    current_user = Depends(get_current_user)
+):
+    """
+    Pre-scans the selected SD card directory to count supported photos and detect camera stations
+    without performing database operations or modifying files.
+    """
+    path = Path(req.folder_path)
+    if not path.exists():
+        alt_path = settings.BASE_DIR.parent / req.folder_path
+        if alt_path.exists():
+            path = alt_path
+        else:
+            raise HTTPException(status_code=400, detail=f"Directory path not found on disk: {req.folder_path}")
+    
+    return ingestion_manager.scan_folder_info(path)
 
 @router.post("/ingest-folder")
 async def ingest_folder(
@@ -39,7 +61,8 @@ async def ingest_folder(
         else:
             raise HTTPException(status_code=400, detail=f"Folder not found: {req.folder_path}")
 
-    batch_id = f"BATCH-{int(uuid.uuid4().hex[:8], 16)}"
+    from datetime import datetime
+    batch_id = f"BATCH-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
     
     # Process synchronously or track in manager
     report = await ingestion_manager.process_batch(
@@ -53,7 +76,7 @@ async def ingest_folder(
     audit = AuditLog(
         actor_id=current_user.full_name if current_user else "Field Staff",
         actor_role=current_user.role if current_user else "forest_staff",
-        action="folder_ingested",
+        action="sd_card_batch_ingested",
         entity_type="batch",
         entity_id=batch_id,
         details_json=str(report)

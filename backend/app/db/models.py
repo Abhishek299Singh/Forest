@@ -29,9 +29,9 @@ class CameraStation(Base):
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     code = Column(String(50), unique=True, index=True, nullable=False)  # e.g., "ST-014"
-    name = Column(String(255), nullable=False)                         # e.g., "Baghin Nala Crossing"
-    latitude = Column(Float, nullable=False)                           # e.g., 21.7584
-    longitude = Column(Float, nullable=False)                          # e.g., 79.3142
+    name = Column(String(255), default="Camera Station")
+    latitude = Column(Float, nullable=True)                           # e.g., 21.7584 (None if missing from EXIF)
+    longitude = Column(Float, nullable=True)                          # e.g., 79.3142
     zone = Column(String(50), default="core")                          # "core", "buffer", "corridor"
     range_beat = Column(String(100), default="Turia Range")
     habitat = Column(String(100), default="Dry Deciduous Forest")
@@ -183,10 +183,10 @@ class TigerSighting(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     tiger_id = Column(String(36), ForeignKey("tigers.id"), nullable=False)
     image_id = Column(String(36), ForeignKey("images.id"), nullable=False)
-    station_id = Column(String(36), ForeignKey("camera_stations.id"), nullable=False)
+    station_id = Column(String(36), ForeignKey("camera_stations.id"), nullable=True)
     captured_at = Column(DateTime, nullable=False, index=True)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     confidence = Column(Float, default=0.95)
     is_verified = Column(Boolean, default=True)
     verified_by = Column(String(100), default="System AI / Field Biologist")

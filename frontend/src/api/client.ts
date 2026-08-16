@@ -87,6 +87,13 @@ export class ApiClient {
     return this.request<any[]>(`/triage/recent-detections?limit=${limit}`);
   }
 
+  static async scanFolder(folder_path: string) {
+    return this.request<any>('/triage/scan-folder', {
+      method: 'POST',
+      body: JSON.stringify({ folder_path }),
+    });
+  }
+
   static async ingestFolder(folder_path: string, station_id?: string) {
     return this.request<any>('/triage/ingest-folder', {
       method: 'POST',

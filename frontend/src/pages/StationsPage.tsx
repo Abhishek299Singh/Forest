@@ -81,57 +81,67 @@ export const StationsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#232834] text-slate-300">
-            {filtered.map((st) => {
-              const isCore = st.zone === 'core';
-              const latestImg = st.latest_image;
-              return (
-                <tr key={st.id} className="hover:bg-[#181d26] transition">
-                  <td className="p-2">
-                    <div className="w-16 h-10 rounded overflow-hidden">
-                      <CameraTrapImage
-                        src={latestImg?.thumbnail_url}
-                        alt={latestImg?.filename || st.code}
-                        aspectRatio="video"
-                        allowZoom={true}
-                        caption={latestImg ? `${latestImg.class_name.toUpperCase()}` : undefined}
-                      />
-                    </div>
-                  </td>
-                  <td className="p-2.5">
-                    <div className="font-semibold text-slate-100 font-mono text-xs">{st.code}</div>
-                    <div className="text-[11px] text-slate-400">{st.name}</div>
-                  </td>
-                  <td className="p-2.5">
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
-                      isCore ? 'bg-[#1a2e20] text-emerald-300 border border-[#26452f]' : 'bg-[#2a2416] text-amber-300 border border-[#44381e]'
-                    }`}>
-                      {st.zone.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="p-2.5 text-slate-300">{st.range_beat}</td>
-                  <td className="p-2.5 font-mono text-slate-400 text-[11px]">
-                    {st.latitude.toFixed(4)}° N, {st.longitude.toFixed(4)}° E
-                  </td>
-                  <td className="p-2.5 font-semibold text-slate-100 tabular-nums font-mono">
-                    {st.active_trap_nights} trap-nights
-                  </td>
-                  <td className="p-2.5 font-semibold text-emerald-400 tabular-nums font-mono">
-                    {st.sightings_count} records
-                  </td>
-                  <td className="p-2.5 font-mono text-slate-300">
-                    <span className={st.battery_level > 50 ? 'text-emerald-400' : 'text-amber-400'}>
-                      {st.battery_level}%
-                    </span>
-                  </td>
-                  <td className="p-2.5">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      Operational
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="p-8 text-center text-slate-400">
+                  No camera stations registered yet. Stations are automatically created when importing camera-trap SD cards.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((st) => {
+                const isCore = st.zone === 'core';
+                const latestImg = st.latest_image;
+                return (
+                  <tr key={st.id} className="hover:bg-[#181d26] transition">
+                    <td className="p-2">
+                      <div className="w-16 h-10 rounded overflow-hidden">
+                        <CameraTrapImage
+                          src={latestImg?.thumbnail_url}
+                          alt={latestImg?.filename || st.code}
+                          aspectRatio="video"
+                          allowZoom={true}
+                          caption={latestImg ? `${latestImg.class_name.toUpperCase()}` : undefined}
+                        />
+                      </div>
+                    </td>
+                    <td className="p-2.5">
+                      <div className="font-semibold text-slate-100 font-mono text-xs">{st.code}</div>
+                      <div className="text-[11px] text-slate-400">{st.name}</div>
+                    </td>
+                    <td className="p-2.5">
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                        isCore ? 'bg-[#1a2e20] text-emerald-300 border border-[#26452f]' : 'bg-[#2a2416] text-amber-300 border border-[#44381e]'
+                      }`}>
+                        {st.zone.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-slate-300">{st.range_beat || 'Unassigned Beat'}</td>
+                    <td className="p-2.5 font-mono text-slate-400 text-[11px]">
+                      {st.latitude != null && st.longitude != null
+                        ? `${st.latitude.toFixed(4)}° N, ${st.longitude.toFixed(4)}° E`
+                        : 'GPS: Not available'}
+                    </td>
+                    <td className="p-2.5 font-semibold text-slate-100 tabular-nums font-mono">
+                      {st.active_trap_nights || 0} trap-nights
+                    </td>
+                    <td className="p-2.5 font-semibold text-emerald-400 tabular-nums font-mono">
+                      {st.sightings_count || 0} records
+                    </td>
+                    <td className="p-2.5 font-mono text-slate-300">
+                      <span className={(st.battery_level || 90) > 50 ? 'text-emerald-400' : 'text-amber-400'}>
+                        {st.battery_level || 90}%
+                      </span>
+                    </td>
+                    <td className="p-2.5">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Operational
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

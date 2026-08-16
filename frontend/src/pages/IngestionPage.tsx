@@ -1,20 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ApiClient } from '../api/client';
 import { useWebSocket } from '../context/WebSocketContext';
 import { 
   FolderUp, HardDrive, ShieldAlert, CheckCircle2, RotateCcw, 
-  Play, Layers
+  Play, Layers, Search, AlertTriangle, ShieldCheck, FileCheck, RefreshCw
 } from 'lucide-react';
 import { CameraTrapImage } from '../components/common/CameraTrapImage';
 
 export const IngestionPage: React.FC = () => {
-  const [folderPath, setFolderPath] = useState('demo_sd_cards/batch_01_core_turia');
+  const [folderPath, setFolderPath] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
   const [isIngesting, setIsIngesting] = useState(false);
   const [liveProgress, setLiveProgress] = useState<any>(null);
   const [latestReport, setLatestReport] = useState<any>(null);
   const [quarantinedImages, setQuarantinedImages] = useState<any[]>([]);
   const [selectedQuarantineIds, setSelectedQuarantineIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'import' | 'quarantine'>('import');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { subscribe } = useWebSocket();
 
   const loadQuarantine = async () => {
@@ -43,10 +47,53 @@ export const IngestionPage: React.FC = () => {
     };
   }, [subscribe]);
 
+  const handleScanFolder = async () => {
+    if (!folderPath) return;
+    setIsScanning(true);
+    setScanResult(null);
+    try {
+      const res = await ApiClient.scanFolder(folderPath);
+      setScanResult(res);
+    } catch (err: any) {
+      alert(`Scan error: ${err.message}`);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleFolderPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      // Extract relative or top-level folder path
+      const firstFile = files[0];
+      const relPath = (firstFile as any).webkitRelativePath;
+      if (relPath) {
+        const rootFolder = relPath.split('/')[0];
+        setFolderPath(rootFolder);
+        setScanResult({
+          valid: true,
+          folder_path: rootFolder,
+          total_images_found: files.length,
+          detected_stations: [`ST-${rootFolder.slice(0, 8).toUpperCase()}`],
+          estimated_size_mb: roundMB(files),
+          status: 'ready'
+        });
+      }
+    }
+  };
+
+  const roundMB = (files: FileList) => {
+    let bytes = 0;
+    for (let i = 0; i < files.length; i++) {
+      bytes += files[i].size;
+    }
+    return Math.round(bytes / (1024 * 1024) * 10) / 10;
+  };
+
   const handleStartIngest = async () => {
     if (!folderPath) return;
     setIsIngesting(true);
-    setLiveProgress({ processed: 0, total: 100, progress_pct: 0 });
+    setLiveProgress({ processed: 0, total: scanResult?.total_images_found || 1, progress_pct: 0 });
     setLatestReport(null);
 
     try {
@@ -80,23 +127,17 @@ export const IngestionPage: React.FC = () => {
     }
   };
 
-  const sampleBatches = [
-    { label: 'Turia Core SD Card (ST-01)', path: 'demo_sd_cards/batch_01_core_turia', camera: 'Cuddeback C1 • 3 Photos' },
-    { label: 'Gumtara Buffer SD Card (ST-08)', path: 'demo_sd_cards/batch_02_buffer_gumtara', camera: 'Cuddeback C2 • 3 Photos' },
-    { label: 'Mixed Reconyx Card (DCIM/100EKTA)', path: 'demo_sd_cards/batch_03_mixed_messy', camera: 'Reconyx HyperFire • 3 Photos' },
-  ];
-
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto text-xs">
       {/* Header & Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#232834]">
         <div>
           <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
-            <FolderUp className="w-4 h-4 text-slate-400" />
-            <span>Field SD Card Ingestion & Automated Triage</span>
+            <FolderUp className="w-4 h-4 text-emerald-400" />
+            <span>IMPORT CAMERA SD CARD</span>
           </h2>
           <p className="text-[11px] text-slate-400">
-            Raw card processing: EXIF validation, zero-loss blank quarantine, tiger torso localization, and stripe vector matching.
+            Direct card ingestion: recursive folder scan, zero-loss blank quarantine, tiger torso localization, and stripe vector re-identification.
           </p>
         </div>
 
@@ -107,7 +148,7 @@ export const IngestionPage: React.FC = () => {
               activeTab === 'import' ? 'bg-[#232834] text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Folder Intake
+            SD Card Ingestion
           </button>
           <button
             onClick={() => setActiveTab('quarantine')}
@@ -123,84 +164,157 @@ export const IngestionPage: React.FC = () => {
 
       {activeTab === 'import' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left 2 Cols: Folder Intake */}
+          {/* Left 2 Cols: SD Card Ingestion */}
           <div className="lg:col-span-2 space-y-3">
-            {/* Input Card */}
+            {/* Folder Selection Card */}
             <div className="field-card p-3.5 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
                   <HardDrive className="w-4 h-4 text-slate-400" />
-                  <span>Select Camera Trap Directory</span>
+                  <span>Select Camera Trap Folder</span>
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 bg-[#11141a] px-2 py-0.5 rounded border border-[#232834]">
-                  Ready for Ingestion
+                <span className="text-[10px] font-mono text-emerald-400 bg-[#1a2e20] px-2 py-0.5 rounded border border-[#26452f] flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Read-Only Source Protected</span>
                 </span>
               </div>
+
+              <p className="text-[11px] text-slate-400">
+                Enter the mounted SD card directory path or browse to select the folder containing raw camera-trap photos:
+              </p>
 
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={folderPath}
                   onChange={(e) => setFolderPath(e.target.value)}
-                  placeholder="e.g. E:\DCIM\100CUDD or demo_sd_cards/batch_01_core_turia"
+                  placeholder="e.g. E:\DCIM\100CAM or D:\FieldData\Turia_Batch"
                   className="flex-1 bg-[#11141a] border border-[#232834] text-slate-100 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-slate-500 font-mono"
                 />
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFolderPickerChange}
+                  // @ts-ignore
+                  webkitdirectory=""
+                  directory=""
+                  multiple
+                  className="hidden"
+                />
+
                 <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 bg-[#181d26] hover:bg-[#232834] text-slate-200 border border-[#2a3140] text-xs font-medium rounded transition flex items-center justify-center gap-1.5"
+                >
+                  <FolderUp className="w-3.5 h-3.5" />
+                  <span>Browse Folder</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleScanFolder}
+                  disabled={isScanning || !folderPath}
+                  className="px-3.5 py-1.5 bg-[#181d26] hover:bg-[#232834] disabled:opacity-50 text-slate-200 border border-[#2a3140] text-xs font-medium rounded transition flex items-center justify-center gap-1.5"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>{isScanning ? 'Scanning...' : 'Scan Folder'}</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleStartIngest}
                   disabled={isIngesting || !folderPath}
                   className="px-4 py-1.5 bg-[#1a2e20] hover:bg-[#26452f] disabled:opacity-50 text-emerald-200 border border-[#26452f] text-xs font-medium rounded transition flex items-center justify-center gap-1.5"
                 >
                   <Play className="w-3 h-3 fill-current" />
-                  <span>{isIngesting ? 'Executing Triage...' : 'Start Triage Run'}</span>
+                  <span>{isIngesting ? 'Executing Triage...' : 'Import & Process SD Card'}</span>
                 </button>
               </div>
 
-              {/* Sample Batch Presets */}
-              <div className="pt-2.5 border-t border-[#232834]">
-                <span className="text-[11px] text-slate-400">Quick Test Batches:</span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1.5">
-                  {sampleBatches.map((b, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setFolderPath(b.path)}
-                      className={`p-2.5 rounded border transition cursor-pointer space-y-0.5 ${
-                        folderPath === b.path
-                          ? 'bg-[#1c222c] border-slate-400 text-white'
-                          : 'bg-[#181d26] border-[#232834] text-slate-400 hover:text-slate-200 hover:bg-[#1f2430]'
-                      }`}
-                    >
-                      <div className="font-medium text-slate-200 text-[11px]">{b.label}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{b.camera}</div>
-                    </div>
-                  ))}
+              {/* Pre-scan inspection details */}
+              {scanResult && (
+                <div className="p-2.5 rounded bg-[#11141a] border border-[#232834] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Discovered: <strong className="text-slate-100">{scanResult.total_images_found} images</strong></span>
+                    {scanResult.detected_stations?.length > 0 && (
+                      <span className="text-slate-400">({scanResult.detected_stations.join(', ')})</span>
+                    )}
+                  </div>
+                  <div className="text-slate-400">
+                    <span>Footprint: ~{scanResult.estimated_size_mb} MB</span>
+                  </div>
                 </div>
+              )}
+
+              {/* Safety notice banner */}
+              <div className="p-2 rounded bg-[#151922] border border-[#202735] flex items-start gap-2 text-[11px] text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Original SD Card Protection:</strong> Source files are opened in read-only mode and copied into the managed workspace. The SD card is never modified, renamed, or deleted.
+                </span>
               </div>
             </div>
 
             {/* Pipeline Stage Indicators */}
-            <div className="field-card p-3 space-y-2">
-              <span className="text-[11px] font-semibold text-slate-300">
-                Automated 4-Stage Triage & Stripe Biometrics Sequence
+            <div className="field-card p-3.5 space-y-3">
+              <span className="font-semibold text-slate-200 text-xs block pb-1 border-b border-[#232834]">
+                Automated ML Triage Stages
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
-                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
-                  <div className="font-mono text-slate-200 font-semibold">1. EXIF Hash</div>
-                  <div className="text-[10px] text-slate-500">SHA-256 Deduplication</div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+                <div className="p-2.5 rounded bg-[#11141a] border border-[#232834] space-y-1">
+                  <div className="text-slate-400 text-[10px] font-mono">Stage 1</div>
+                  <div className="font-semibold text-slate-200">EXIF & GPS Parse</div>
+                  <div className="text-[10px] text-slate-500">Camera & Clock Audit</div>
                 </div>
-                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
-                  <div className="font-mono text-amber-400 font-semibold">2. Blank Quarantine</div>
-                  <div className="text-[10px] text-slate-500">Zero Loss Vault</div>
+
+                <div className="p-2.5 rounded bg-[#11141a] border border-[#232834] space-y-1">
+                  <div className="text-slate-400 text-[10px] font-mono">Stage 2</div>
+                  <div className="font-semibold text-slate-200">Blank Filter (≥70%)</div>
+                  <div className="text-[10px] text-slate-500">Zero Loss Quarantine</div>
                 </div>
-                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
-                  <div className="font-mono text-slate-200 font-semibold">3. Flank Crop</div>
-                  <div className="text-[10px] text-slate-500">Bilateral Flank Isolation</div>
+
+                <div className="p-2.5 rounded bg-[#11141a] border border-[#232834] space-y-1">
+                  <div className="text-slate-400 text-[10px] font-mono">Stage 3</div>
+                  <div className="font-semibold text-slate-200">Torso & Flank Crop</div>
+                  <div className="text-[10px] text-slate-500">128-d Stripe Vector</div>
                 </div>
-                <div className="bg-[#11141a] p-2 rounded border border-[#232834]">
-                  <div className="font-mono text-emerald-400 font-semibold">4. Vector Match</div>
+
+                <div className="p-2.5 rounded bg-[#11141a] border border-[#232834] space-y-1">
+                  <div className="text-slate-400 text-[10px] font-mono">Stage 4</div>
+                  <div className="font-semibold text-slate-200">Re-ID & Alerts</div>
                   <div className="text-[10px] text-slate-500">Cosine Catalogue Search</div>
                 </div>
               </div>
             </div>
+
+            {/* Live Progress Bar */}
+            {isIngesting && liveProgress && (
+              <div className="field-card p-3.5 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                    <span>Processing Batch: {liveProgress.batch_id || 'Active'}</span>
+                  </span>
+                  <span className="font-mono text-emerald-400 font-semibold">{liveProgress.progress_pct}%</span>
+                </div>
+
+                <div className="w-full h-2 bg-[#11141a] rounded overflow-hidden border border-[#232834]">
+                  <div 
+                    className="h-full bg-emerald-500 transition-all duration-300"
+                    style={{ width: `${liveProgress.progress_pct}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1">
+                  <span>Processed: {liveProgress.processed} / {liveProgress.total}</span>
+                  <span>Tigers: {liveProgress.tiger_images || 0} • Quarantined: {liveProgress.quarantined || 0}</span>
+                </div>
+              </div>
+            )}
 
             {/* Ingestion Report & Data Quality Table */}
             {latestReport && (
@@ -266,15 +380,16 @@ export const IngestionPage: React.FC = () => {
             <div className="field-card p-3.5 space-y-2">
               <span className="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-slate-400" />
-                <span>Field Ingestion Protocol</span>
+                <span>Field SD Card Protocol</span>
               </span>
               <p className="text-slate-300 leading-relaxed text-[11px]">
-                Images are automatically verified against camera station coordinates, EXIF timestamp sequences, and lateral flank stripe patterns.
+                Raw field SD card photos are triaged locally with zero cloud dependencies and zero GPU requirements.
               </p>
-              <div className="p-2 rounded bg-[#11141a] border border-[#232834] text-[11px] text-slate-300 space-y-1.5">
-                <div><strong>• Zero Permanent Deletion:</strong> All blank foliage frames are stored safely in the Quarantine Vault.</div>
-                <div><strong>• Stripe Re-identification:</strong> Left and right flank patterns are isolated and matched against the persistent tiger catalogue.</div>
-                <div><strong>• Survey-Effort Baseline:</strong> Station active trap-nights are calculated to avoid false alerts on newly deployed units.</div>
+              <div className="p-2.5 rounded bg-[#11141a] border border-[#232834] text-[11px] text-slate-300 space-y-2">
+                <div><strong>• Read-Only Safety:</strong> Camera SD cards remain 100% untouched. All operations occur in the local workspace.</div>
+                <div><strong>• Zero Permanent Deletion:</strong> All false triggers (swaying leaves, wind) are safely stored in the Quarantine Vault.</div>
+                <div><strong>• Dynamic Identification:</strong> The tiger catalogue grows organically from actual observations. No pre-seeded IDs.</div>
+                <div><strong>• Survey-Effort Baseline:</strong> Station active trap-nights prevent false movement alarms on newly installed units.</div>
               </div>
             </div>
           </div>
@@ -285,61 +400,79 @@ export const IngestionPage: React.FC = () => {
           <div className="flex items-center justify-between bg-[#181d26] p-3 rounded border border-[#232834]">
             <div>
               <span className="font-semibold text-slate-200 text-xs">
-                Quarantine Vault ({quarantinedImages.length} Preserved Captures)
+                Zero-Loss Quarantine Vault ({quarantinedImages.length} Blank Images)
               </span>
               <p className="text-[11px] text-slate-400">
-                Preserved blank images from wind and foliage motion. Raw images remain intact on local storage and can be restored anytime.
+                Images classified as blank/vegetation. Preserved for verification before any permanent archival.
               </p>
             </div>
 
             {selectedQuarantineIds.length > 0 && (
               <button
                 onClick={handleBatchRestore}
-                className="px-3 py-1 bg-[#1a2e20] hover:bg-[#26452f] text-emerald-300 border border-[#26452f] text-xs font-medium rounded transition"
+                className="px-3 py-1 bg-[#1a2e20] hover:bg-[#26452f] text-emerald-300 rounded border border-[#26452f] text-xs font-medium transition flex items-center gap-1"
               >
-                Restore Selected ({selectedQuarantineIds.length})
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restore {selectedQuarantineIds.length} Selected</span>
               </button>
             )}
           </div>
 
           {quarantinedImages.length === 0 ? (
-            <div className="field-card p-12 text-center text-slate-400 text-xs">
-              Quarantine Vault is empty.
+            <div className="field-card p-8 text-center text-slate-400 space-y-1">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+              <div className="font-semibold text-slate-200">Quarantine Vault is Clean</div>
+              <p className="text-[11px]">No images are currently quarantined as blanks.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {quarantinedImages.map((img) => (
-                <div key={img.id} className="field-card rounded overflow-hidden flex flex-col">
-                  <div className="h-36 bg-[#11141a] relative">
-                    <CameraTrapImage
-                      src={img.thumbnail_url}
-                      alt={img.filename}
-                      aspectRatio="auto"
-                      className="h-36"
-                      allowZoom={true}
-                    />
-                    <span className="absolute top-2 left-2 bg-[#11141a]/90 text-amber-300 font-mono text-[10px] px-1.5 py-0.2 rounded border border-[#232834]">
-                      {img.station_code || 'ST-01'}
-                    </span>
-                  </div>
-                  <div className="p-2.5 space-y-1.5 flex-1 flex flex-col justify-between text-xs">
-                    <div>
-                      <div className="font-medium text-slate-200 truncate">{img.filename}</div>
-                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{img.quarantine_reason}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {quarantinedImages.map((item) => {
+                const isSelected = selectedQuarantineIds.includes(item.id);
+                return (
+                  <div 
+                    key={item.id}
+                    className={`field-card p-2 space-y-1.5 rounded transition ${
+                      isSelected ? 'border-amber-500 bg-[#1f1b13]' : 'border-[#232834]'
+                    }`}
+                  >
+                    <div className="relative aspect-video rounded overflow-hidden bg-[#11141a] border border-[#232834]">
+                      <CameraTrapImage
+                        src={`/api/v1/images/${item.id}/thumbnail`}
+                        alt={item.filename}
+                        aspectRatio="video"
+                      />
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedQuarantineIds([...selectedQuarantineIds, item.id]);
+                          } else {
+                            setSelectedQuarantineIds(selectedQuarantineIds.filter(id => id !== item.id));
+                          }
+                        }}
+                        className="absolute top-1.5 right-1.5 w-4 h-4 rounded accent-amber-500"
+                      />
                     </div>
-                    <div className="pt-2 border-t border-[#232834] flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-slate-400">{img.file_size_kb} KB</span>
-                      <button
-                        onClick={() => handleRestore(img.id)}
-                        className="px-2 py-0.5 bg-[#181d26] hover:bg-[#232834] text-slate-300 text-[11px] rounded transition flex items-center gap-1 border border-[#2a3140]"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Restore</span>
-                      </button>
+
+                    <div className="text-[10px] font-mono text-slate-300 truncate" title={item.filename}>
+                      {item.filename}
                     </div>
+
+                    <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono">
+                      <span>{item.station_code || 'ST-01'}</span>
+                      <span className="text-amber-400 font-semibold">{Math.round((item.confidence || 0.85) * 100)}% Blank</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleRestore(item.id)}
+                      className="w-full py-0.5 bg-[#181d26] hover:bg-[#232834] text-slate-300 rounded border border-[#2a3140] text-[10px] transition"
+                    >
+                      Restore Image
+                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

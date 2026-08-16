@@ -167,6 +167,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
     // Stations
     if (showStations && stations.length > 0) {
       stations.forEach((st) => {
+        if (st.latitude == null || st.longitude == null) return;
         const el = document.createElement('div');
         el.className = 'cursor-pointer';
         
@@ -185,10 +186,10 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
           <div class="text-xs">
             <div class="font-bold text-emerald-400 font-mono">${st.code} (${st.zone.toUpperCase()})</div>
             <div class="font-semibold text-emerald-100">${st.name}</div>
-            <div class="text-emerald-400 text-[11px] mt-0.5">${st.range_beat} • ${st.habitat}</div>
+            <div class="text-emerald-400 text-[11px] mt-0.5">${st.range_beat || 'Turia Range'}</div>
             <div class="text-[11px] text-emerald-200 mt-1.5 pt-1 border-t border-[#1c3525] flex justify-between">
-              <span>${st.active_trap_nights} Trap-nights</span>
-              <span class="text-emerald-400 font-bold">${st.sightings_count} Captures</span>
+              <span>${st.active_trap_nights || 0} Trap-nights</span>
+              <span class="text-emerald-400 font-bold">${st.sightings_count || 0} Captures</span>
             </div>
           </div>
         `);
@@ -204,9 +205,9 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
 
     // Tigers
     if (showTigers && tigers.length > 0) {
-      tigers.forEach((t, idx) => {
+      tigers.forEach((t) => {
         if (selectedFilterTiger !== 'all' && t.id !== selectedFilterTiger) return;
-        if (!t.centroid) return;
+        if (!t.centroid || t.centroid.lat == null || t.centroid.lon == null) return;
 
         const el = document.createElement('div');
         el.className = 'cursor-pointer';
@@ -228,8 +229,8 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
           <div class="text-xs">
             <div class="font-bold text-amber-400 font-mono">${t.tiger_code} (${t.status.toUpperCase()})</div>
             <div class="font-semibold text-emerald-100">${t.callsign}</div>
-            <div class="text-emerald-400 text-[11px] mt-0.5">${t.sex} • ${t.age_class} • Range: ${t.primary_zone}</div>
-            <div class="text-emerald-200 mt-1 pt-1 border-t border-[#1c3525]">Territory: <strong class="text-emerald-400">${t.territory_area_km2} km²</strong></div>
+            <div class="text-emerald-400 text-[11px] mt-0.5">${t.sex || 'Unknown'} • ${t.age_class || 'Adult'} • Range: ${t.primary_zone}</div>
+            <div class="text-emerald-200 mt-1 pt-1 border-t border-[#1c3525]">Territory: <strong class="text-emerald-400">${t.territory_area_km2 || 0} km²</strong></div>
           </div>
         `);
 
@@ -246,7 +247,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
     if (showAlerts && alerts.length > 0) {
       alerts.filter(a => a.status === 'active').forEach((al) => {
         const st = stations.find(s => s.code === al.station_code);
-        if (!st) return;
+        if (!st || st.latitude == null || st.longitude == null) return;
 
         const el = document.createElement('div');
         el.className = 'cursor-pointer z-30';
