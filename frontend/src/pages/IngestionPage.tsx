@@ -84,28 +84,32 @@ export const IngestionPage: React.FC<IngestionPageProps> = ({ onNavigateToMap })
     }
   };
 
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
   const handleFolderPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const firstFile = files[0];
+      const fileList = Array.from(files);
+      setSelectedFiles(fileList);
+      const firstFile = fileList[0];
       const relPath = (firstFile as any).webkitRelativePath;
-      if (relPath) {
-        const rootFolder = relPath.split('/')[0];
-        setFolderPath(rootFolder);
-        setScanResult({
-          valid: true,
-          folder_path: rootFolder,
-          total_images_found: Array.from(files).filter(f => f.type.startsWith('image/') || f.name.match(/\.(jpg|jpeg|png)$/i)).length,
-          csv_files_found: Array.from(files).filter(f => f.name.endsWith('.csv')).map(f => f.name),
-          csv_rows_count: Array.from(files).filter(f => f.name.endsWith('.csv')).length > 0 ? 'Detected' : 0,
-          detected_stations: [`ST-${rootFolder.slice(0, 8).toUpperCase()}`],
-          estimated_size_mb: roundMB(files),
-          status: 'ready'
-        });
-        setCurrentStage('Validated');
-      } else {
-        setFolderPath(firstFile.name);
-      }
+      const rootFolder = relPath ? relPath.split('/')[0] : firstFile.name;
+      setFolderPath(rootFolder);
+
+      const imageCount = fileList.filter(f => f.type.startsWith('image/') || f.name.match(/\.(jpg|jpeg|png)$/i)).length;
+      const csvFiles = fileList.filter(f => f.name.endsWith('.csv')).map(f => f.name);
+
+      setScanResult({
+        valid: true,
+        folder_path: rootFolder,
+        total_images_found: imageCount,
+        csv_files_found: csvFiles,
+        csv_rows_count: csvFiles.length > 0 ? 'Detected' : 0,
+        detected_stations: [`ST-${rootFolder.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()}`],
+        estimated_size_mb: roundMB(files),
+        status: 'ready'
+      });
+      setCurrentStage('Validated');
     }
   };
 
@@ -118,21 +122,32 @@ export const IngestionPage: React.FC<IngestionPageProps> = ({ onNavigateToMap })
   };
 
   const handleStartIngest = async () => {
-    if (!folderPath) return;
+    if (!folderPath && selectedFiles.length === 0) return;
     setIsIngesting(true);
     setIngestError(null);
     setCurrentStage('Processing');
-    setLiveProgress({ processed: 0, total: scanResult?.total_images_found || scanResult?.csv_rows_count || 1, progress_pct: 0 });
+    setLiveProgress({ 
+      processed: 0, 
+      total: selectedFiles.length || scanResult?.total_images_found || scanResult?.csv_rows_count || 1, 
+      progress_pct: 0 
+    });
     setLatestReport(null);
 
     try {
-      const report = await ApiClient.ingestFolder(folderPath);
+      let report;
+      if (selectedFiles.length > 0) {
+        // Direct browser files ingestion (works for any browsed local directory)
+        report = await ApiClient.ingestFiles(selectedFiles);
+      } else {
+        // Path-based ingestion on host
+        report = await ApiClient.ingestFolder(folderPath);
+      }
       setLatestReport(report);
       setCurrentStage('Complete');
       loadQuarantine();
     } catch (err: any) {
       setIngestError(err.message || 'Ingestion execution error');
-      setCurrentStage('Error');
+      setCurrentStage('Validated');
     } finally {
       setIsIngesting(false);
     }

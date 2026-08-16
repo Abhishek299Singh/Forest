@@ -31,6 +31,27 @@ class QuarantineActionRequest(BaseModel):
     action: str  # "restore", "confirm_blank", "delete_quarantine_flag"
     notes: Optional[str] = None
 
+def resolve_folder_path(raw_path: str) -> Optional[Path]:
+    """Resolves local directory across project, demo, and desktop locations."""
+    if not raw_path:
+        return None
+    p = Path(raw_path)
+    if p.exists():
+        return p
+    candidates = [
+        settings.BASE_DIR / raw_path,
+        settings.BASE_DIR.parent / raw_path,
+        settings.BASE_DIR.parent / "demo_sd_cards" / raw_path,
+        Path.home() / "Desktop" / raw_path,
+        Path.home() / "Downloads" / raw_path,
+        Path("C:/Users/Vivek/Desktop") / raw_path,
+        Path("C:/Users/Vivek/Desktop/Web dep/Forest") / raw_path,
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return None
+
 @router.post("/scan-folder")
 def scan_folder_preview(
     req: ScanFolderRequest,
@@ -40,15 +61,11 @@ def scan_folder_preview(
     Pre-scans the selected SD card directory to count supported photos and detect camera stations
     without performing database operations or modifying files.
     """
-    path = Path(req.folder_path)
-    if not path.exists():
-        alt_path = settings.BASE_DIR.parent / req.folder_path
-        if alt_path.exists():
-            path = alt_path
-        else:
-            raise HTTPException(status_code=400, detail=f"Directory path not found on disk: {req.folder_path}")
+    resolved_path = resolve_folder_path(req.folder_path)
+    if not resolved_path:
+        raise HTTPException(status_code=400, detail=f"Directory path not found on disk: {req.folder_path}")
     
-    return ingestion_manager.scan_folder_info(path)
+    return ingestion_manager.scan_folder_info(resolved_path)
 
 @router.post("/ingest-folder")
 async def ingest_folder(
@@ -56,14 +73,9 @@ async def ingest_folder(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    path = Path(req.folder_path)
-    if not path.exists():
-        # Check if user passed relative demo path
-        alt_path = settings.BASE_DIR.parent / req.folder_path
-        if alt_path.exists():
-            path = alt_path
-        else:
-            raise HTTPException(status_code=400, detail=f"Folder not found: {req.folder_path}")
+    resolved_path = resolve_folder_path(req.folder_path)
+    if not resolved_path:
+        raise HTTPException(status_code=400, detail=f"Folder not found: {req.folder_path}")
 
     from datetime import datetime
     batch_id = f"BATCH-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
@@ -72,15 +84,58 @@ async def ingest_folder(
     report = await ingestion_manager.process_batch(
         db=db,
         batch_id=batch_id,
-        folder_path=path,
+        folder_path=resolved_path,
         station_id_override=req.station_id
     )
 
     # Log audit
     audit = AuditLog(
         actor_id=current_user.full_name if current_user else "Field Staff",
-        actor_role=current_user.role if current_user else "forest_staff",
+        actor_role=current_user.role if current_user else "ranger",
         action="sd_card_batch_ingested",
+        entity_type="batch",
+        entity_id=batch_id,
+        details_json=str(report)
+    )
+    db.add(audit)
+    db.commit()
+
+    return report
+
+@router.post("/ingest-files")
+async def ingest_files_upload(
+    files: List[UploadFile] = File(...),
+    station_id: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Direct multi-file / folder upload from browser file picker.
+    Saves selected photos to managed intake workspace and executes the real ML pipeline.
+    """
+    from datetime import datetime
+    batch_id = f"BATCH-UPLOAD-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+    workspace_dir = settings.WORKSPACE_DIR / "batches" / batch_id
+    workspace_dir.mkdir(parents=True, exist_ok=True)
+
+    for f in files:
+        # Preserve original filename
+        clean_name = Path(f.filename).name if f.filename else f"upload_{uuid.uuid4().hex[:6]}.jpg"
+        dest = workspace_dir / clean_name
+        with open(dest, "wb") as buffer:
+            shutil.copyfileobj(f.file, buffer)
+
+    report = await ingestion_manager.process_batch(
+        db=db,
+        batch_id=batch_id,
+        folder_path=workspace_dir,
+        station_id_override=station_id
+    )
+
+    audit = AuditLog(
+        actor_id=current_user.full_name if current_user else "Field Staff",
+        actor_role=current_user.role if current_user else "ranger",
+        action="browser_sd_card_files_ingested",
         entity_type="batch",
         entity_id=batch_id,
         details_json=str(report)

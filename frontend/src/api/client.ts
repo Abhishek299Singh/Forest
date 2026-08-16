@@ -133,6 +133,39 @@ export class ApiClient {
     });
   }
 
+  static async ingestFiles(files: File[], station_id?: string) {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file, file.name);
+    });
+    if (station_id) {
+      formData.append('station_id', station_id);
+    }
+
+    const headers: Record<string, string> = {};
+    const token = this.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${BASE_URL}/triage/ingest-files`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorDetail = 'File batch ingestion failed';
+      try {
+        const errJson = await response.json();
+        errorDetail = errJson.detail || errorDetail;
+      } catch (_) {}
+      throw new Error(errorDetail);
+    }
+
+    return response.json();
+  }
+
   static async ingestCsvData(csv_content: string, station_id?: string) {
     return this.request<any>('/triage/ingest-csv-data', {
       method: 'POST',

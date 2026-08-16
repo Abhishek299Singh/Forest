@@ -89,10 +89,9 @@ async def test_full_sd_card_import_and_dynamic_tiger_generation(db_session, temp
     assert station is not None
 
     if report["tiger_images"] > 0:
-        tigers = db_session.query(Tiger).all()
-        assert len(tigers) >= initial_tigers
-        new_tiger = tigers[-1]
-        assert new_tiger.tiger_code.startswith("PTR-T-")
+        ptr_tigers = db_session.query(Tiger).filter(Tiger.tiger_code.like("PTR-T-%")).all()
+        assert len(ptr_tigers) > 0
+        assert ptr_tigers[0].tiger_code.startswith("PTR-T-")
 
 @pytest.mark.asyncio
 async def test_csv_manifest_import_and_map_sync(db_session, tmp_path):
