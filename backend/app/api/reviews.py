@@ -97,9 +97,13 @@ def get_task_detail(task_id: str, db: Session = Depends(get_db)):
                 db.query(TigerImage)
                 .filter(TigerImage.tiger_id == tiger.id)
                 .order_by(TigerImage.is_reference.desc())
-                .limit(2)
+                .limit(3)
                 .all()
             )
+            raw_score = scores[idx] if idx < len(scores) else 0.70
+            sim_pct = int(round(raw_score * 100))
+            is_ref = bool(tiger.is_reference or tiger.dataset_source == "amur_atrw")
+
             candidate_details.append({
                 "tiger_id": tiger.id,
                 "tiger_code": tiger.tiger_code,
@@ -107,13 +111,19 @@ def get_task_detail(task_id: str, db: Session = Depends(get_db)):
                 "sex": tiger.sex,
                 "age_class": tiger.age_class,
                 "primary_zone": tiger.primary_zone,
-                "similarity_score": scores[idx] if idx < len(scores) else 0.70,
+                "dataset_source": "Amur/ATRW Reference Gallery" if is_ref else "Pench Resident Catalogue",
+                "is_reference": is_ref,
+                "similarity_score": raw_score,
+                "similarity_percentage": f"{sim_pct}%",
+                "similarity_display": f"Similarity: {sim_pct}%",
                 "reference_images": [
                     {
                         "image_id": ri.image_id,
                         "flank_side": ri.flank_side,
-                        "crop_url": f"/api/v1/images/{ri.image_id}/file",
-                        "thumbnail_url": f"/api/v1/images/{ri.image_id}/thumbnail"
+                        "crop_url": f"/api/v1/images/{ri.image_id}/crop",
+                        "flank_url": f"/api/v1/images/{ri.image_id}/flank",
+                        "thumbnail_url": f"/api/v1/images/{ri.image_id}/thumbnail",
+                        "image_url": f"/api/v1/images/{ri.image_id}/file"
                     }
                     for ri in ref_images
                 ]
@@ -138,7 +148,8 @@ def get_task_detail(task_id: str, db: Session = Depends(get_db)):
             "zone": st.zone if st else "Core",
             "image_url": f"/api/v1/images/{img.id}/file",
             "thumbnail_url": f"/api/v1/images/{img.id}/thumbnail",
-            "flank_crop_url": f"/api/v1/images/{img.id}/file",
+            "flank_crop_url": f"/api/v1/images/{img.id}/flank",
+            "body_crop_url": f"/api/v1/images/{img.id}/crop",
             "flank_side": tiger_img.flank_side if tiger_img else "left"
         },
         "candidates": candidate_details
@@ -163,10 +174,10 @@ async def submit_decision(
     if req.action_taken == "confirm_candidate" and req.selected_tiger_id:
         target_tiger = db.query(Tiger).filter(Tiger.id == req.selected_tiger_id).first()
         if target_tiger:
-            # Create or update TigerSighting
+            # If confirmed against a reference tiger, establish or link Pench identity
+            st = db.query(CameraStation).filter(CameraStation.id == img.station_id).first()
             sighting = db.query(TigerSighting).filter(TigerSighting.image_id == img.id).first()
             if not sighting:
-                st = db.query(CameraStation).filter(CameraStation.id == img.station_id).first()
                 sighting = TigerSighting(
                     tiger_id=target_tiger.id,
                     image_id=img.id,
@@ -177,7 +188,7 @@ async def submit_decision(
                     confidence=1.0,
                     is_verified=True,
                     verified_by=reviewer_name,
-                    notes=f"Confirmed via human review: {req.notes or ''}"
+                    notes=f"Confirmed via human review by {reviewer_name}: {req.notes or ''}"
                 )
                 db.add(sighting)
             else:
@@ -185,13 +196,52 @@ async def submit_decision(
                 sighting.is_verified = True
                 sighting.verified_by = reviewer_name
 
+            # Dynamic Pench Gallery Growth: Enroll real Pench image and embedding
+            t_img = db.query(TigerImage).filter(TigerImage.image_id == img.id).first()
+            if not t_img:
+                from app.ml.tiger_detector import TigerDetector
+                from app.ml.stripe_embedder import StripeEmbedder
+                from app.core.config import settings
+                
+                detector = TigerDetector()
+                embedder = StripeEmbedder()
+                
+                det_res = detector.detect(img.storage_path)
+                flank_side = det_res["flank_side"]
+                crop_filename = f"flank_{img.id}_{flank_side}.jpg"
+                crop_path = settings.CROPS_DIR / crop_filename
+                detector.crop_flank(img.storage_path, det_res["flank_bbox"], crop_path)
+                
+                t_img = TigerImage(
+                    tiger_id=target_tiger.id,
+                    image_id=img.id,
+                    flank_side=flank_side,
+                    crop_path=str(crop_path),
+                    original_image_path=img.storage_path,
+                    dataset_source="pench_field",
+                    is_reference=False,
+                    quality_score=0.95
+                )
+                db.add(t_img)
+                db.flush()
+                
+                stripe_vec = embedder.extract_embedding(crop_path)
+                emb = TigerEmbedding(
+                    tiger_id=target_tiger.id,
+                    tiger_image_id=t_img.id,
+                    embedding_json=json.dumps(stripe_vec),
+                    dataset_source="pench_field",
+                    model_version=embedder.model_version
+                )
+                db.add(emb)
+
             # Recalculate occupancy & movement alerts
             occupancy_engine.calculate_tiger_occupancy(db, target_tiger.id)
             await movement_alert_engine.evaluate_sighting_alerts(db, sighting)
 
     elif req.action_taken == "create_new_tiger":
-        tiger_code = req.new_tiger_code or f"PTR-T-{db.query(Tiger).count() + 1:03d}"
-        callsign = req.new_callsign or f"New Individual ({tiger_code})"
+        tiger_code = req.new_tiger_code or f"PTR-T-{db.query(Tiger).filter(Tiger.dataset_source == 'pench_field').count() + 1:03d}"
+        callsign = req.new_callsign or f"Pench Resident ({tiger_code})"
         st = db.query(CameraStation).filter(CameraStation.id == img.station_id).first()
         
         target_tiger = Tiger(
@@ -200,11 +250,13 @@ async def submit_decision(
             sex="Unknown",
             age_class="Adult",
             status="resident",
+            dataset_source="pench_field",
+            is_reference=False,
             primary_zone=st.zone if st else "Core",
             first_seen=img.captured_at,
             last_seen=img.captured_at,
             confidence=1.0,
-            notes=f"Enrolled by {reviewer_name}. {req.notes or ''}"
+            notes=f"Enrolled as new Pench resident tiger by {reviewer_name}. {req.notes or ''}"
         )
         db.add(target_tiger)
         db.flush()
@@ -218,9 +270,47 @@ async def submit_decision(
             longitude=st.longitude if st else 79.314,
             confidence=1.0,
             is_verified=True,
-            verified_by=reviewer_name
+            verified_by=reviewer_name,
+            notes=f"Initial sighting enrolled upon review by {reviewer_name}"
         )
         db.add(sighting)
+
+        # Enroll image & embedding into the Pench Tiger Gallery
+        from app.ml.tiger_detector import TigerDetector
+        from app.ml.stripe_embedder import StripeEmbedder
+        from app.core.config import settings
+        
+        detector = TigerDetector()
+        embedder = StripeEmbedder()
+        
+        det_res = detector.detect(img.storage_path)
+        flank_side = det_res["flank_side"]
+        crop_filename = f"flank_{img.id}_{flank_side}.jpg"
+        crop_path = settings.CROPS_DIR / crop_filename
+        detector.crop_flank(img.storage_path, det_res["flank_bbox"], crop_path)
+        
+        t_img = TigerImage(
+            tiger_id=target_tiger.id,
+            image_id=img.id,
+            flank_side=flank_side,
+            crop_path=str(crop_path),
+            original_image_path=img.storage_path,
+            dataset_source="pench_field",
+            is_reference=False,
+            quality_score=0.95
+        )
+        db.add(t_img)
+        db.flush()
+        
+        stripe_vec = embedder.extract_embedding(crop_path)
+        emb = TigerEmbedding(
+            tiger_id=target_tiger.id,
+            tiger_image_id=t_img.id,
+            embedding_json=json.dumps(stripe_vec),
+            dataset_source="pench_field",
+            model_version=embedder.model_version
+        )
+        db.add(emb)
         occupancy_engine.calculate_tiger_occupancy(db, target_tiger.id)
 
     task.status = "resolved"

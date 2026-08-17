@@ -3,6 +3,9 @@ from typing import Optional
 from pathlib import Path
 from pydantic import BaseModel
 
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent
+(_BASE_DIR / "data").mkdir(parents=True, exist_ok=True)
+
 class Settings(BaseModel):
     PROJECT_NAME: str = "Pench Wildlife Intelligence Platform"
     VERSION: str = "2.5.0"
@@ -12,16 +15,12 @@ class Settings(BaseModel):
     IS_OFFLINE_MODE: bool = True
     DEVICE_ID: str = "PTR-TURIA-LAPTOP-01"
     
-    # Database URL
-    DATABASE_URL: str = "sqlite:///data/pench_offline.db"
-    SQLITE_DB_PATH: str = "data/pench_offline.db"
-    
-    # Central Server Sync (when connected)
-    CENTRAL_API_URL: Optional[str] = "https://wildlife.pench.gov.in/api/v1"
-    CENTRAL_DB_URL: Optional[str] = None
-    
     # Base Dir
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
+    BASE_DIR: Path = _BASE_DIR
+    
+    # Database URL
+    DATABASE_URL: str = f"sqlite:///{_BASE_DIR.as_posix()}/data/pench_offline.db"
+    SQLITE_DB_PATH: str = str(_BASE_DIR / "data" / "pench_offline.db")
     
     # Storage Paths
     BASE_STORAGE_PATH: str = "data"
@@ -75,6 +74,18 @@ class Settings(BaseModel):
     @property
     def CROPS_DIR(self) -> Path:
         p = self.BASE_DIR / self.CROPS_PATH
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def THUMBNAILS_DIR(self) -> Path:
+        p = self.BASE_DIR / "data/thumbnails"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    @property
+    def REFERENCE_GALLERY_DIR(self) -> Path:
+        p = self.BASE_DIR / "data/reference_gallery"
         p.mkdir(parents=True, exist_ok=True)
         return p
 

@@ -69,12 +69,29 @@ class TriagePipeline:
         # Check for duplicates
         existing_img = db.query(Image).filter(Image.file_hash == file_hash).first()
         if existing_img:
+            det = db.query(Detection).filter(Detection.image_id == existing_img.id).first()
+            sighting = db.query(TigerSighting).filter(TigerSighting.image_id == existing_img.id).first()
+            tiger_rec = db.query(Tiger).filter(Tiger.id == sighting.tiger_id).first() if sighting else None
+            t_info = None
+            if tiger_rec:
+                t_info = {
+                    "decision": "matched",
+                    "assigned_tiger_id": tiger_rec.id,
+                    "tiger_code": tiger_rec.tiger_code,
+                    "callsign": tiger_rec.callsign
+                }
             return {
                 "status": "duplicate",
                 "image_id": existing_img.id,
                 "filename": existing_img.filename,
                 "file_hash": file_hash,
-                "message": "Image already exists in database."
+                "class_name": det.class_name if det else "tiger",
+                "confidence": det.confidence if det else 0.90,
+                "bbox": [det.bbox_x, det.bbox_y, det.bbox_w, det.bbox_h] if det else [0.2, 0.2, 0.6, 0.6],
+                "is_blank": det.class_name == "blank" if det else False,
+                "is_quarantined": existing_img.is_quarantined,
+                "tiger_info": t_info,
+                "message": "Image already exists in database (returning existing triage)."
             }
 
         # 2. Extract dimensions and EXIF timestamp
@@ -201,9 +218,11 @@ class TriagePipeline:
         bbox_x, bbox_y, bbox_w, bbox_h = 0.0, 0.0, 0.0, 0.0
         tiger_info = None
 
-        if class_name == "tiger" or (class_name == "animal" and confidence > 0.8):
+        if class_name in ("tiger", "animal", "wildlife") and not is_blank:
             # Run Stage 2: Tiger / Flank Detector
             tiger_res = self.tiger_detector.detect(managed_storage_path)
+            if tiger_res.get("is_tiger", False):
+                class_name = "tiger"
             bbox_x, bbox_y, bbox_w, bbox_h = tiger_res["bbox"]
             flank_bbox = tiger_res["flank_bbox"]
             flank_side = tiger_res["flank_side"]
@@ -286,30 +305,42 @@ class TriagePipeline:
                 )
                 db.add(t_emb)
 
-                # Add Tiger Sighting
-                if station:
-                    sighting = TigerSighting(
-                        tiger_id=assigned_tiger.id,
-                        image_id=db_image.id,
-                        station_id=station.id,
-                        captured_at=captured_at,
-                        latitude=station.latitude,
-                        longitude=station.longitude,
-                        confidence=round(confidence, 3),
-                        is_verified=(decision == "auto_accepted"),
-                        notes=f"Sighting via automated camera trap triage. Match decision: {decision}"
-                    )
-                    db.add(sighting)
+                # Add Tiger Sighting with strict GPS Priority (EXIF -> Station CSV -> Missing)
+                sighting_lat = None
+                sighting_lon = None
+                gps_source = "Missing"
 
-                    # Update tiger last seen
-                    cap_naive = captured_at.replace(tzinfo=None) if captured_at.tzinfo else captured_at
-                    fs_naive = assigned_tiger.first_seen.replace(tzinfo=None) if (assigned_tiger.first_seen and getattr(assigned_tiger.first_seen, 'tzinfo', None)) else assigned_tiger.first_seen
-                    ls_naive = assigned_tiger.last_seen.replace(tzinfo=None) if (assigned_tiger.last_seen and getattr(assigned_tiger.last_seen, 'tzinfo', None)) else assigned_tiger.last_seen
+                if exif_dict.get("latitude") is not None and exif_dict.get("longitude") is not None:
+                    sighting_lat = float(exif_dict["latitude"])
+                    sighting_lon = float(exif_dict["longitude"])
+                    gps_source = "EXIF"
+                elif station and station.latitude is not None and station.longitude is not None:
+                    sighting_lat = float(station.latitude)
+                    sighting_lon = float(station.longitude)
+                    gps_source = "Station CSV"
 
-                    if not fs_naive or cap_naive < fs_naive:
-                        assigned_tiger.first_seen = cap_naive
-                    if not ls_naive or cap_naive > ls_naive:
-                        assigned_tiger.last_seen = cap_naive
+                sighting = TigerSighting(
+                    tiger_id=assigned_tiger.id,
+                    image_id=db_image.id,
+                    station_id=station.id if station else None,
+                    captured_at=captured_at,
+                    latitude=sighting_lat,
+                    longitude=sighting_lon,
+                    confidence=round(confidence, 3),
+                    is_verified=(decision == "auto_accepted"),
+                    notes=f"Sighting via automated camera trap triage. Match decision: {decision}. GPS: {gps_source}"
+                )
+                db.add(sighting)
+
+                # Update tiger last seen
+                cap_naive = captured_at.replace(tzinfo=None) if captured_at.tzinfo else captured_at
+                fs_naive = assigned_tiger.first_seen.replace(tzinfo=None) if (assigned_tiger.first_seen and getattr(assigned_tiger.first_seen, 'tzinfo', None)) else assigned_tiger.first_seen
+                ls_naive = assigned_tiger.last_seen.replace(tzinfo=None) if (assigned_tiger.last_seen and getattr(assigned_tiger.last_seen, 'tzinfo', None)) else assigned_tiger.last_seen
+
+                if not fs_naive or cap_naive < fs_naive:
+                    assigned_tiger.first_seen = cap_naive
+                if not ls_naive or cap_naive > ls_naive:
+                    assigned_tiger.last_seen = cap_naive
 
             tiger_info = {
                 "decision": decision,

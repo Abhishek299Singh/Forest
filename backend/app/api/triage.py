@@ -21,6 +21,11 @@ class ScanFolderRequest(BaseModel):
 class IngestFolderRequest(BaseModel):
     folder_path: str
     station_id: Optional[str] = None
+    coordinates_csv: Optional[str] = None
+
+class ValidateIntakeRequest(BaseModel):
+    folder_path: Optional[str] = None
+    coordinates_csv: Optional[str] = None
 
 class IngestCsvRequest(BaseModel):
     csv_content: str
@@ -51,6 +56,21 @@ def resolve_folder_path(raw_path: str) -> Optional[Path]:
         if c.exists():
             return c
     return None
+
+@router.post("/validate-intake")
+def validate_intake_preview(
+    req: ValidateIntakeRequest,
+    current_user = Depends(get_current_user)
+):
+    """
+    Validates Image Folder + Camera Coordinates CSV prior to processing.
+    Checks column validity, lat/lon bounds, duplicates, and camera matching.
+    """
+    resolved_path = resolve_folder_path(req.folder_path) if req.folder_path else None
+    return ingestion_manager.validate_intake(
+        folder_path=resolved_path,
+        coordinates_csv_content=req.coordinates_csv
+    )
 
 @router.post("/scan-folder")
 def scan_folder_preview(
@@ -85,7 +105,8 @@ async def ingest_folder(
         db=db,
         batch_id=batch_id,
         folder_path=resolved_path,
-        station_id_override=req.station_id
+        station_id_override=req.station_id,
+        coordinates_csv_content=req.coordinates_csv
     )
 
     # Log audit
@@ -106,11 +127,12 @@ async def ingest_folder(
 async def ingest_files_upload(
     files: List[UploadFile] = File(...),
     station_id: Optional[str] = Form(None),
+    coordinates_csv: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     """
-    Direct multi-file / folder upload from browser file picker.
+    Direct multi-file / folder upload from browser file picker with optional Coordinates CSV.
     Saves selected photos to managed intake workspace and executes the real ML pipeline.
     """
     from datetime import datetime
@@ -129,7 +151,8 @@ async def ingest_files_upload(
         db=db,
         batch_id=batch_id,
         folder_path=workspace_dir,
-        station_id_override=station_id
+        station_id_override=station_id,
+        coordinates_csv_content=coordinates_csv
     )
 
     audit = AuditLog(

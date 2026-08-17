@@ -35,8 +35,21 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
   const [showAlerts, setShowAlerts] = useState(true);
   const [showVillages, setShowVillages] = useState(true);
   const [selectedFilterTiger, setSelectedFilterTiger] = useState<string>('all');
+  const [basemapType, setBasemapType] = useState<'osm' | 'topo' | 'satellite'>('osm');
 
   const PENCH_CENTER: [number, number] = [79.325, 21.758];
+
+  const getTileUrl = (type: 'osm' | 'topo' | 'satellite') => {
+    switch (type) {
+      case 'topo':
+        return 'https://tile.opentopomap.org/{z}/{x}/{y}.png';
+      case 'satellite':
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case 'osm':
+      default:
+        return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  };
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -48,11 +61,9 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         sources: {
           'osm-tiles': {
             type: 'raster',
-            tiles: [
-              'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-            ],
+            tiles: [getTileUrl(basemapType)],
             tileSize: 256,
-            attribution: '© OpenStreetMap | Pench Forest Dept'
+            attribution: '© OpenStreetMap contributors | Pench Forest Reserve'
           }
         },
         layers: [
@@ -61,19 +72,13 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
             type: 'raster',
             source: 'osm-tiles',
             minzoom: 0,
-            maxzoom: 19,
-            paint: {
-              'raster-saturation': -0.75,
-              'raster-hue-rotate': 80,
-              'raster-brightness-min': 0.12,
-              'raster-brightness-max': 0.75
-            }
+            maxzoom: 19
           }
         ]
       },
       center: PENCH_CENTER,
       zoom: 10.8,
-      attributionControl: false
+      attributionControl: { compact: false }
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
@@ -157,7 +162,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
     return () => {
       map.remove();
     };
-  }, [gisData]);
+  }, [gisData, basemapType]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -376,6 +381,37 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         >
           Alerts
         </button>
+
+        {/* Basemap Switcher */}
+        <div className="flex items-center gap-1 bg-[#07100a] p-0.5 rounded border border-[#1c3525] text-[10px] font-mono">
+          <button
+            onClick={() => setBasemapType('osm')}
+            className={`px-2 py-0.5 rounded transition ${
+              basemapType === 'osm' ? 'bg-emerald-800 text-white font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+            title="OpenStreetMap Standard (Streets & Natural Features)"
+          >
+            OSM
+          </button>
+          <button
+            onClick={() => setBasemapType('topo')}
+            className={`px-2 py-0.5 rounded transition ${
+              basemapType === 'topo' ? 'bg-emerald-800 text-white font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+            title="OpenTopoMap (Topographic Contours & Elevation)"
+          >
+            Topo
+          </button>
+          <button
+            onClick={() => setBasemapType('satellite')}
+            className={`px-2 py-0.5 rounded transition ${
+              basemapType === 'satellite' ? 'bg-emerald-800 text-white font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+            title="Satellite Imagery (Aerial Forest Canopy)"
+          >
+            Satellite
+          </button>
+        </div>
 
         <div className="pl-1 border-l border-[#1c3525]">
           <select

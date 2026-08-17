@@ -10,6 +10,7 @@ export const CataloguePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [zoneFilter, setZoneFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [isEditing, setIsEditing] = useState(false);
   const [editNotes, setEditNotes] = useState('');
 
@@ -18,6 +19,7 @@ export const CataloguePage: React.FC = () => {
       const data = await ApiClient.getTigers({
         status: statusFilter !== 'all' ? statusFilter : undefined,
         zone: zoneFilter !== 'all' ? zoneFilter : undefined,
+        source: sourceFilter !== 'all' ? sourceFilter : undefined,
         search: searchQuery || undefined,
       });
       setTigers(data);
@@ -26,7 +28,7 @@ export const CataloguePage: React.FC = () => {
 
   useEffect(() => {
     loadTigers();
-  }, [statusFilter, zoneFilter, searchQuery]);
+  }, [statusFilter, zoneFilter, sourceFilter, searchQuery]);
 
   const handleSelectTiger = async (tigerId: string) => {
     try {
@@ -72,9 +74,19 @@ export const CataloguePage: React.FC = () => {
               placeholder="Search code or callsign..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#181d26] border border-[#2a3140] text-slate-100 rounded pl-8 pr-2.5 py-1 text-xs focus:outline-none focus:border-slate-500 w-48 font-sans"
+              className="bg-[#181d26] border border-[#2a3140] text-slate-100 rounded pl-8 pr-2.5 py-1 text-xs focus:outline-none focus:border-slate-500 w-44 font-sans"
             />
           </div>
+
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="bg-[#181d26] border border-[#2a3140] text-slate-200 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-slate-500 font-medium"
+          >
+            <option value="all">All Tiger Profiles</option>
+            <option value="pench">Pench Resident Tigers</option>
+            <option value="reference">Amur/ATRW Reference Gallery</option>
+          </select>
 
           <select
             value={statusFilter}
@@ -84,6 +96,7 @@ export const CataloguePage: React.FC = () => {
             <option value="all">All Statuses</option>
             <option value="resident">Resident</option>
             <option value="transient">Transient</option>
+            <option value="reference">Reference</option>
             <option value="provisional">Provisional</option>
           </select>
 
@@ -107,11 +120,11 @@ export const CataloguePage: React.FC = () => {
               <th className="p-2.5 font-medium w-20">Flank Photo</th>
               <th className="p-2.5 font-medium">Tiger Code</th>
               <th className="p-2.5 font-medium">Callsign / Identity</th>
-              <th className="p-2.5 font-medium">Sex / Age Class</th>
+              <th className="p-2.5 font-medium">Provenance / Source</th>
+              <th className="p-2.5 font-medium">Sex / Age</th>
               <th className="p-2.5 font-medium">Primary Zone</th>
-              <th className="p-2.5 font-medium">Home Range (MCP 95%)</th>
+              <th className="p-2.5 font-medium">Home Range</th>
               <th className="p-2.5 font-medium">Sightings</th>
-              <th className="p-2.5 font-medium">Last Detection</th>
               <th className="p-2.5 font-medium">Status</th>
               <th className="p-2.5 font-medium text-right">Action</th>
             </tr>
@@ -124,48 +137,56 @@ export const CataloguePage: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              tigers.map((t) => (
-                <tr 
-                  key={t.id} 
-                  onClick={() => handleSelectTiger(t.id)}
-                  className="hover:bg-[#181d26] cursor-pointer transition"
-                >
-                  <td className="p-2">
-                    <div className="w-14 h-9 rounded overflow-hidden">
-                      <CameraTrapImage
-                        src={t.reference_thumbnail}
-                        alt={t.tiger_code}
-                        aspectRatio="video"
-                      />
-                    </div>
-                  </td>
-                  <td className="p-2.5 font-mono font-semibold text-slate-100">{t.tiger_code}</td>
-                  <td className="p-2.5 font-medium text-slate-200">{t.callsign}</td>
-                  <td className="p-2.5">{t.sex} • {t.age_class}</td>
-                  <td className="p-2.5">{t.primary_zone}</td>
-                  <td className="p-2.5 font-mono tabular-nums">
-                    {t.territory_area_km2 > 0 ? `${t.territory_area_km2} km²` : 'Provisional'}
-                  </td>
-                  <td className="p-2.5 font-mono tabular-nums">{t.sightings_count} captures</td>
-                  <td className="p-2.5 font-mono text-[11px] text-slate-400">
-                    {t.last_seen ? t.last_seen.split('T')[0] : 'N/A'}
-                  </td>
-                  <td className="p-2.5">
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
-                      t.status === 'resident' ? 'bg-[#1a2e20] text-emerald-300 border border-[#26452f]' :
-                      t.status === 'transient' ? 'bg-[#2a2416] text-amber-300 border border-[#44381e]' :
-                      'bg-[#181d26] text-slate-400 border border-[#232834]'
-                    }`}>
-                      {t.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="p-2.5 text-right">
-                    <button className="text-slate-400 hover:text-white text-[11px]">
-                      View Dossier →
-                    </button>
-                  </td>
-                </tr>
-              ))
+              tigers.map((t) => {
+                const isRef = t.is_reference || t.source_type === 'amur_atrw' || t.dataset_source?.includes('Reference');
+                return (
+                  <tr 
+                    key={t.id} 
+                    onClick={() => handleSelectTiger(t.id)}
+                    className="hover:bg-[#181d26] cursor-pointer transition"
+                  >
+                    <td className="p-2">
+                      <div className="w-14 h-9 rounded overflow-hidden bg-black border border-[#2e3544]">
+                        <CameraTrapImage
+                          src={t.reference_crop || t.reference_thumbnail}
+                          alt={t.tiger_code}
+                          aspectRatio="video"
+                        />
+                      </div>
+                    </td>
+                    <td className="p-2.5 font-mono font-semibold text-slate-100">{t.tiger_code}</td>
+                    <td className="p-2.5 font-medium text-slate-200">{t.callsign}</td>
+                    <td className="p-2.5">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                        isRef ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-800' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                      }`}>
+                        {isRef ? 'Amur/ATRW Reference' : 'Pench Resident'}
+                      </span>
+                    </td>
+                    <td className="p-2.5">{t.sex} • {t.age_class}</td>
+                    <td className="p-2.5">{t.primary_zone}</td>
+                    <td className="p-2.5 font-mono tabular-nums">
+                      {t.territory_area_km2 > 0 ? `${t.territory_area_km2} km²` : isRef ? 'N/A (Reference)' : 'Provisional'}
+                    </td>
+                    <td className="p-2.5 font-mono tabular-nums">{t.sightings_count} captures</td>
+                    <td className="p-2.5">
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                        t.status === 'resident' ? 'bg-[#1a2e20] text-emerald-300 border border-[#26452f]' :
+                        t.status === 'reference' ? 'bg-indigo-950 text-indigo-300 border border-indigo-800' :
+                        t.status === 'transient' ? 'bg-[#2a2416] text-amber-300 border border-[#44381e]' :
+                        'bg-[#181d26] text-slate-400 border border-[#232834]'
+                      }`}>
+                        {t.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-right">
+                      <button className="text-slate-400 hover:text-white text-[11px]">
+                        View Dossier →
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -25,6 +25,7 @@ class TigerUpdateRequest(BaseModel):
 def list_tigers(
     status: Optional[str] = None,
     zone: Optional[str] = None,
+    source: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -33,6 +34,13 @@ def list_tigers(
         query = query.filter(Tiger.status == status)
     if zone:
         query = query.filter(Tiger.primary_zone.ilike(f"%{zone}%"))
+    if source and source != "all":
+        if source == "reference":
+            query = query.filter((Tiger.is_reference == True) | (Tiger.dataset_source == "amur_atrw"))
+        elif source == "pench":
+            query = query.filter((Tiger.is_reference == False) & (Tiger.dataset_source == "pench_field"))
+        else:
+            query = query.filter(Tiger.dataset_source == source)
     if search:
         query = query.filter(
             (Tiger.tiger_code.ilike(f"%{search}%")) |
@@ -49,6 +57,7 @@ def list_tigers(
             .first()
         )
         sightings_count = db.query(TigerSighting).filter(TigerSighting.tiger_id == t.id).count()
+        is_ref = bool(t.is_reference or t.dataset_source == "amur_atrw")
         
         results.append({
             "id": t.id,
@@ -58,6 +67,9 @@ def list_tigers(
             "age_class": t.age_class,
             "status": t.status,
             "primary_zone": t.primary_zone,
+            "dataset_source": "Amur/ATRW Reference Gallery" if is_ref else "Pench Resident Catalogue",
+            "source_type": "amur_atrw" if is_ref else "pench_field",
+            "is_reference": is_ref,
             "first_seen": t.first_seen.isoformat() if t.first_seen else None,
             "last_seen": t.last_seen.isoformat() if t.last_seen else None,
             "confidence": t.confidence,
@@ -65,6 +77,7 @@ def list_tigers(
             "centroid": {"lat": t.centroid_lat, "lon": t.centroid_lon} if t.centroid_lat else None,
             "sightings_count": sightings_count,
             "reference_thumbnail": f"/api/v1/images/{ref_image.image_id}/thumbnail" if ref_image else None,
+            "reference_crop": f"/api/v1/images/{ref_image.image_id}/flank" if ref_image else None,
             "notes": t.notes
         })
 

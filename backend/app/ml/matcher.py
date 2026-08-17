@@ -80,13 +80,24 @@ class TigerMatcher:
                         sim = sim * 0.20
 
                 if tiger.id not in candidates_map or sim > candidates_map[tiger.id]["similarity"]:
+                    is_ref = bool(tiger.is_reference or tiger.dataset_source == "amur_atrw")
+                    provenance = "Amur/ATRW Reference Gallery" if is_ref else "Pench Resident Catalogue"
+                    sim_pct = int(round(sim * 100))
+
                     candidates_map[tiger.id] = {
                         "tiger_id": tiger.id,
                         "tiger_code": tiger.tiger_code,
                         "callsign": tiger.callsign,
                         "similarity": round(float(sim), 4),
                         "similarity_score": round(float(sim), 4),
+                        "similarity_percentage": f"{sim_pct}%",
+                        "similarity_display": f"Similarity: {sim_pct}%",
+                        "dataset_source": provenance,
+                        "is_reference": is_ref,
+                        "reference_image_id": t_img.image_id,
                         "reference_crop": t_img.crop_path,
+                        "reference_crop_url": f"/api/v1/images/{t_img.image_id}/flank",
+                        "reference_image_url": f"/api/v1/images/{t_img.image_id}/file",
                         "flank_side": t_img.flank_side,
                         "matched_flank_side": ref_flank,
                         "flank_compatible": flank_compatible,

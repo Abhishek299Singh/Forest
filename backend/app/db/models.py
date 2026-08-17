@@ -138,6 +138,8 @@ class Tiger(Base):
     primary_zone = Column(String(50), default="Core (Turia)")
     confidence = Column(Float, default=0.98)
     notes = Column(Text, nullable=True)
+    dataset_source = Column(String(50), default="pench_field")  # "amur_atrw", "pench_field"
+    is_reference = Column(Boolean, default=False)
     territory_area_km2 = Column(Float, default=0.0)
     centroid_lat = Column(Float, nullable=True)
     centroid_lon = Column(Float, nullable=True)
@@ -157,7 +159,8 @@ class TigerImage(Base):
     image_id = Column(String(36), ForeignKey("images.id"), nullable=False)
     flank_side = Column(String(20), default="left")  # left, right, frontal, unknown
     crop_path = Column(Text, nullable=False)
-    stripe_pattern_path = Column(Text, nullable=True)
+    original_image_path = Column(Text, nullable=True)
+    dataset_source = Column(String(50), default="pench_field")  # "amur_atrw", "pench_field"
     quality_score = Column(Float, default=0.88)
     is_reference = Column(Boolean, default=False)
     created_at = Column(DateTime, default=get_utc_now)
@@ -173,6 +176,7 @@ class TigerEmbedding(Base):
     tiger_id = Column(String(36), ForeignKey("tigers.id"), nullable=False)
     tiger_image_id = Column(String(36), ForeignKey("tiger_images.id"), nullable=False)
     embedding_json = Column(Text, nullable=False)  # Stored float vector (128-dim)
+    dataset_source = Column(String(50), default="pench_field")  # "amur_atrw", "pench_field"
     model_version = Column(String(50), default="stripe-embed-v2")
     created_at = Column(DateTime, default=get_utc_now)
 

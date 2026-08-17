@@ -58,8 +58,11 @@ export interface TigerSummary {
   callsign: string;
   sex: string;
   age_class: string;
-  status: 'resident' | 'transient' | 'provisional' | 'dispersed';
+  status: 'resident' | 'transient' | 'provisional' | 'dispersed' | 'reference' | string;
   primary_zone: string;
+  dataset_source?: string;
+  source_type?: string;
+  is_reference?: boolean;
   first_seen?: string;
   last_seen?: string;
   confidence: number;
@@ -67,6 +70,7 @@ export interface TigerSummary {
   centroid?: { lat: number; lon: number };
   sightings_count: number;
   reference_thumbnail?: string;
+  reference_crop?: string;
   notes?: string;
 }
 

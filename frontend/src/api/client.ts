@@ -126,20 +126,30 @@ export class ApiClient {
     });
   }
 
-  static async ingestFolder(folder_path: string, station_id?: string) {
-    return this.request<any>('/triage/ingest-folder', {
+  static async validateIntake(folder_path?: string, coordinates_csv?: string) {
+    return this.request<any>('/triage/validate-intake', {
       method: 'POST',
-      body: JSON.stringify({ folder_path, station_id }),
+      body: JSON.stringify({ folder_path, coordinates_csv }),
     });
   }
 
-  static async ingestFiles(files: File[], station_id?: string) {
+  static async ingestFolder(folder_path: string, station_id?: string, coordinates_csv?: string) {
+    return this.request<any>('/triage/ingest-folder', {
+      method: 'POST',
+      body: JSON.stringify({ folder_path, station_id, coordinates_csv }),
+    });
+  }
+
+  static async ingestFiles(files: File[], station_id?: string, coordinates_csv?: string) {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append('files', file, file.name);
     });
     if (station_id) {
       formData.append('station_id', station_id);
+    }
+    if (coordinates_csv) {
+      formData.append('coordinates_csv', coordinates_csv);
     }
 
     const headers: Record<string, string> = {};
@@ -191,10 +201,11 @@ export class ApiClient {
   }
 
   // Tigers Catalogue
-  static async getTigers(params?: { status?: string; zone?: string; search?: string }) {
+  static async getTigers(params?: { status?: string; zone?: string; source?: string; search?: string }) {
     const query = new URLSearchParams();
     if (params?.status) query.append('status', params.status);
     if (params?.zone) query.append('zone', params.zone);
+    if (params?.source) query.append('source', params.source);
     if (params?.search) query.append('search', params.search);
     return this.request<any[]>(`/tigers?${query.toString()}`);
   }

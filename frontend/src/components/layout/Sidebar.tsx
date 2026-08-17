@@ -23,39 +23,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const sections = [
     {
-      title: 'OPERATIONS',
+      title: 'CORE PLATFORM',
       items: [
-        { id: 'dashboard', label: 'Command Overview', icon: LayoutDashboard },
-        { id: 'ingestion', label: 'SD Card Ingestion', icon: FolderUp },
-        { 
-          id: 'review', 
-          label: 'Biologist Review Studio', 
-          icon: CheckSquare,
-          badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
-          badgeColor: 'bg-amber-950 text-amber-300 border border-amber-800'
-        },
-      ]
-    },
-    {
-      title: isAdmin ? 'MONITORING & GIS' : 'FIELD MONITORING',
-      items: [
-        { id: 'catalogue', label: 'Tiger Catalogue', icon: Cat },
-        { id: 'map', label: 'Reserve GIS Map', icon: Map },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'ingestion', label: 'Process Images', icon: FolderUp },
+        { id: 'catalogue', label: 'Tigers', icon: Cat },
+        { id: 'map', label: 'Map', icon: Map },
         { 
           id: 'alerts', 
-          label: 'Movement Alerts', 
+          label: 'Alerts', 
           icon: AlertOctagon,
           badge: activeAlertCount > 0 ? activeAlertCount : undefined,
           badgeColor: 'bg-rose-950 text-rose-300 border border-rose-800'
         },
-        { id: 'stations', label: 'Camera Trap Grid', icon: Camera },
+        { 
+          id: 'review', 
+          label: 'Review', 
+          icon: CheckSquare,
+          badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
+          badgeColor: 'bg-amber-950 text-amber-300 border border-amber-800'
+        },
+        { id: 'stations', label: 'Camera Stations', icon: Camera },
       ]
     },
     ...(isAdmin ? [
       {
         title: 'ADMINISTRATION',
         items: [
-          { id: 'users', label: 'User Management (RBAC)', icon: Users },
+          { id: 'users', label: 'User Management', icon: Users },
           { id: 'reports', label: 'Reports & Export', icon: FileSpreadsheet },
           { id: 'sync', label: 'Database Synchronization', icon: RefreshCw },
           { id: 'settings', label: 'Threshold Policies', icon: SlidersHorizontal },

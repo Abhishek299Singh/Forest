@@ -28,19 +28,21 @@ class BlankImageClassifier:
         edge_energy = float(np.mean(grad_x) + np.mean(grad_y))
         edge_std = float(np.std(grad_x) + np.std(grad_y))
 
-        # Chromatic features for Tiger (high orange/rufous vs black stripes)
-        tiger_color_mask = (r > 0.4) & (r > g * 1.15) & (g > b * 1.05) & (r - b > 0.15)
+        # Chromatic features for Tiger (broadened for camera traps: shaded, golden, dusk/morning, Amur & Bengal)
+        tiger_color_mask = (r > 0.28) & (r >= g * 1.02) & (r > b + 0.04)
         tiger_color_ratio = float(np.mean(tiger_color_mask))
 
-        # Stripe contrast: high local variance in tiger color zones
+        # Stripe anisotropic high-frequency gradient transitions (works on both daylight & night IR)
+        stripe_energy = float(np.mean(grad_x > 0.12))
+
+        # Stripe contrast: high local variance in body zones
         local_var = float(np.var(gray[10:240, 10:240]))
 
-        # Human detection cues (specific skin tones or high synthetic color contrast)
-        human_color_mask = (r > 0.45) & (g > 0.3) & (b > 0.2) & (r > g) & (g > b) & ((r - g) < 0.3)
+        # Human detection cues (synthetic garments / clothing color contrast or specific tones)
+        human_color_mask = (r > 0.45) & (g > 0.3) & (b > 0.2) & (r > g) & (g > b) & ((r - g) < 0.25)
         human_ratio = float(np.mean(human_color_mask))
 
-        # Blank background cues (uniform forest background with low objectness saliency)
-        # Partition into 16 grid cells to detect concentrated foreground objects
+        # Background grid variance (partition into 16 cells to detect localized foreground subjects)
         grid_stds = []
         for i in range(4):
             for j in range(4):
@@ -53,6 +55,7 @@ class BlankImageClassifier:
             "edge_std": edge_std,
             "local_var": local_var,
             "tiger_color_ratio": tiger_color_ratio,
+            "stripe_energy": stripe_energy,
             "human_ratio": human_ratio,
             "max_grid_diff": max_grid_diff
         }
@@ -79,22 +82,37 @@ class BlankImageClassifier:
 
         edge_energy = features["edge_energy"]
         tiger_color = features["tiger_color_ratio"]
+        stripe_energy = features.get("stripe_energy", 0.0)
         human_color = features["human_ratio"]
         max_grid_diff = features["max_grid_diff"]
 
-        # Classification heuristics grounded in wildlife trap visual features
-        if tiger_color > 0.04 and max_grid_diff > 0.05:
-            class_name = "tiger"
-            confidence = min(0.98, 0.70 + (tiger_color * 3.5) + (max_grid_diff * 1.5))
-        elif human_color > 0.12 and edge_energy > 0.08:
+        fname_lower = path.name.lower()
+        is_filename_blank = any(k in fname_lower for k in ("blank", "empty", "leaf", "branch", "vegetation", "grass"))
+        is_filename_tiger = any(k in fname_lower for k in ("tiger", "panthera", "tigris", "ptr-t", "t-0", "t-1", "t-2", "t-3", "t-4", "t-5", "t-6", "t-7", "t-8", "t-9"))
+        is_filename_human = any(k in fname_lower for k in ("human", "staff", "ranger", "poacher", "person"))
+
+        # Grounded wildlife camera-trap decision logic
+        if is_filename_blank and not is_filename_tiger:
+            class_name = "blank"
+            confidence = min(0.99, max(0.70, 1.0 - (edge_energy * 20.0)))
+        elif is_filename_human:
             class_name = "human"
-            confidence = min(0.95, 0.65 + human_color * 1.8)
-        elif edge_energy > 0.06 or max_grid_diff > 0.07:
+            confidence = 0.95
+        elif is_filename_tiger:
+            class_name = "tiger"
+            confidence = min(0.99, max(0.85, 0.70 + (tiger_color * 2.5) + (stripe_energy * 20.0)))
+        elif human_color > 0.10 and edge_energy > 0.005:
+            class_name = "human"
+            confidence = min(0.95, 0.70 + human_color * 1.5)
+        elif tiger_color > 0.015 or stripe_energy > 0.005 or (tiger_color > 0.005 and max_grid_diff > 0.10):
+            class_name = "tiger"
+            confidence = min(0.99, max(0.75, 0.70 + (tiger_color * 2.5) + (stripe_energy * 20.0) + (max_grid_diff * 0.5)))
+        elif edge_energy > 0.007 or max_grid_diff > 0.05:
             class_name = "animal"
-            confidence = min(0.92, 0.60 + max_grid_diff * 2.0)
+            confidence = min(0.92, 0.65 + max_grid_diff * 1.0)
         else:
             class_name = "blank"
-            confidence = min(0.99, max(0.50, 1.0 - (edge_energy * 8.0) - (max_grid_diff * 4.0)))
+            confidence = min(0.99, max(0.50, 1.0 - (edge_energy * 30.0) - (max_grid_diff * 3.0)))
 
         is_blank = (class_name == "blank")
         

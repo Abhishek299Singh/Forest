@@ -230,7 +230,7 @@ export const ReviewPage: React.FC = () => {
                   {/* Right: Candidate Matches */}
                   <div className="bg-[#11141a] p-3 rounded border border-[#232834] space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-200">Candidate Profiles (Top Matches)</span>
+                      <span className="text-slate-200">Reference Comparison Gallery (Top Matches)</span>
                       <span className="text-slate-400 text-[10px]">Select Profile to Confirm</span>
                     </div>
 
@@ -238,34 +238,46 @@ export const ReviewPage: React.FC = () => {
                       {selectedTask.candidates?.map((c: any) => {
                         const isChosen = selectedCandidateId === c.tiger_id;
                         const matchPct = Math.round((c.similarity_score || c.similarity || 0.75) * 100);
-                        const refPhoto = c.reference_images?.[0]?.thumbnail_url || c.reference_images?.[0]?.crop_url;
+                        const refPhoto = c.reference_images?.[0]?.flank_url || c.reference_images?.[0]?.crop_url || c.reference_images?.[0]?.thumbnail_url;
+                        const isRef = c.is_reference || c.dataset_source?.includes('Reference');
                         return (
                           <div
                             key={c.tiger_id}
                             onClick={() => setSelectedCandidateId(c.tiger_id)}
-                            className={`p-2 rounded border transition cursor-pointer flex items-center justify-between ${
+                            className={`p-2.5 rounded border transition cursor-pointer flex items-center justify-between ${
                               isChosen
-                                ? 'bg-[#1c222c] border-emerald-500'
+                                ? 'bg-[#1c222c] border-emerald-500 shadow-md'
                                 : 'bg-[#181d26] border-[#232834] hover:bg-[#1f2430]'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-14 h-10 rounded bg-[#11141a] overflow-hidden border border-[#232834] shrink-0">
+                            <div className="flex items-center gap-3">
+                              <div className="w-16 h-12 rounded bg-black overflow-hidden border border-[#2e3544] shrink-0 relative">
                                 <CameraTrapImage
                                   src={refPhoto}
                                   alt={c.callsign}
                                   aspectRatio="video"
                                 />
+                                <span className="absolute bottom-0 right-0 bg-black/80 text-[8px] font-mono px-1 text-slate-300">
+                                  {c.reference_images?.[0]?.flank_side?.toUpperCase() || 'REF'}
+                                </span>
                               </div>
-                              <div className="text-xs">
-                                <div className="font-semibold text-slate-200">{c.callsign}</div>
-                                <div className="text-[10px] font-mono text-slate-400">{c.tiger_code} • {c.sex || 'Adult'}</div>
+                              <div className="text-xs space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-slate-100">{c.tiger_code}</span>
+                                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                                    isRef ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-800' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                                  }`}>
+                                    {c.dataset_source || (isRef ? 'Amur/ATRW Reference' : 'Pench Resident')}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-slate-300 truncate max-w-[200px]">{c.callsign}</div>
+                                <div className="text-[10px] font-mono text-slate-500">{c.sex || 'Unknown'} • {c.age_class || 'Adult'}</div>
                               </div>
                             </div>
 
-                            <div className="text-right font-mono">
-                              <div className="text-xs font-semibold text-emerald-400">{matchPct}% match</div>
-                              <span className="text-[9px] text-slate-500 uppercase">Cosine Sim</span>
+                            <div className="text-right font-mono pl-2">
+                              <div className="text-xs font-bold text-emerald-400">Similarity: {matchPct}%</div>
+                              <span className="text-[9px] text-slate-500">128-D Cosine Metric</span>
                             </div>
                           </div>
                         );

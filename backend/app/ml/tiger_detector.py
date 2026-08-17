@@ -22,36 +22,40 @@ class TigerDetector:
                 np_img = np.array(img_small, dtype=np.float32) / 255.0
 
                 r, g, b = np_img[:, :, 0], np_img[:, :, 1], np_img[:, :, 2]
+                gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+                grad_x = np.pad(np.abs(gray[:, 1:] - gray[:, :-1]), ((0, 0), (0, 1)), mode='constant')
                 
-                # Tiger saliency mask (rufous coat + stripe intensity variance)
-                tiger_mask = (r > 0.42) & (r > g * 1.12) & (g > b * 1.05) & (r - b > 0.12)
+                # Tiger saliency mask (broad rufous coat + stripe intensity variance)
+                color_mask = (r > 0.28) & (r >= g * 1.02) & (r > b + 0.04)
+                stripe_mask = (grad_x > 0.12)
+                tiger_mask = color_mask | (stripe_mask & (gray > 0.15))
                 
                 y_indices, x_indices = np.where(tiger_mask)
                 
-                if len(x_indices) > 50:
-                    # Normalized bbox
-                    min_x = max(0.05, float(np.percentile(x_indices, 5)) / 320.0)
-                    max_x = min(0.95, float(np.percentile(x_indices, 95)) / 320.0)
-                    min_y = max(0.10, float(np.percentile(y_indices, 5)) / 240.0)
-                    max_y = min(0.90, float(np.percentile(y_indices, 95)) / 240.0)
+                if len(x_indices) > 30:
+                    # Normalized bbox with padding
+                    min_x = max(0.02, float(np.percentile(x_indices, 5)) / 320.0)
+                    max_x = min(0.98, float(np.percentile(x_indices, 95)) / 320.0)
+                    min_y = max(0.05, float(np.percentile(y_indices, 5)) / 240.0)
+                    max_y = min(0.95, float(np.percentile(y_indices, 95)) / 240.0)
 
-                    bbox_w = max_x - min_x
-                    bbox_h = max_y - min_y
+                    bbox_w = max(0.20, max_x - min_x)
+                    bbox_h = max(0.20, max_y - min_y)
                     
                     # Estimate flank sub-region (center 60% of tiger body)
-                    flank_x = min_x + bbox_w * 0.20
-                    flank_y = min_y + bbox_h * 0.20
-                    flank_w = bbox_w * 0.60
-                    flank_h = bbox_h * 0.60
+                    flank_x = min_x + bbox_w * 0.15
+                    flank_y = min_y + bbox_h * 0.15
+                    flank_w = bbox_w * 0.70
+                    flank_h = bbox_h * 0.70
 
                     # Determine flank side orientation (left vs right based on centroid)
                     center_x = (min_x + max_x) / 2.0
                     flank_side = "left" if center_x < 0.52 else "right"
-                    confidence = min(0.98, 0.75 + (len(x_indices) / (320 * 240)) * 5.0)
+                    confidence = min(0.99, 0.75 + (len(x_indices) / (320 * 240)) * 4.0)
                 else:
                     # Default centered bounding box fallback for animal / tiger sightings
-                    min_x, min_y, bbox_w, bbox_h = 0.20, 0.20, 0.60, 0.55
-                    flank_x, flank_y, flank_w, flank_h = 0.30, 0.30, 0.40, 0.35
+                    min_x, min_y, bbox_w, bbox_h = 0.15, 0.15, 0.70, 0.65
+                    flank_x, flank_y, flank_w, flank_h = 0.25, 0.25, 0.50, 0.45
                     flank_side = "left"
                     confidence = 0.85
 

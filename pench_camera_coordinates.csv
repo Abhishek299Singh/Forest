@@ -1,0 +1,9 @@
+camera_id,latitude,longitude,station_name,zone
+CAM_001,21.7584,79.3142,Turia Gate Station,Core
+CAM_002,21.7821,79.2954,Baghin Nala Crossing,Core
+CAM_003,21.7412,79.3367,Alikatta Grasslands,Core
+CAM_004,21.7156,79.2841,Karmajhiri Stream,Core
+CAM_005,21.6842,79.3582,Gumtara Buffer Edge,Buffer
+CAM_006,21.6528,79.3251,Telia Lake Corridor,Buffer
+CAM_007,21.6387,79.3412,Sillari Boundary Post,Buffer
+CAM_008,21.7950,79.3620,Chhindimatta Ridge,Core

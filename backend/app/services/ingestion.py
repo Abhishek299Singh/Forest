@@ -149,6 +149,165 @@ class IngestionManager:
             print(f"Error parsing CSV {csv_path}: {e}")
         return records
 
+    def parse_coordinates_csv_content(self, csv_text: str) -> Dict[str, Any]:
+        """
+        Parses camera coordinates CSV formats:
+        Format 1: camera_id,latitude,longitude
+        Format 2: camera_id,latitude,longitude,station_name,zone
+        """
+        stations = {}
+        errors = []
+        warnings = []
+        lines = [line.strip() for line in csv_text.strip().splitlines() if line.strip()]
+        if not lines:
+            return {"stations": {}, "errors": ["Coordinates CSV is empty."], "warnings": []}
+
+        import csv
+        import io
+        reader = csv.DictReader(io.StringIO("\n".join(lines)))
+        
+        # Check required columns
+        fieldnames = [f.strip().lower() for f in (reader.fieldnames or []) if f]
+        cam_col = next((f for f in fieldnames if f in ("camera_id", "camera", "station_id", "station", "cam_id", "station_code")), None)
+        lat_col = next((f for f in fieldnames if f in ("latitude", "lat")), None)
+        lon_col = next((f for f in fieldnames if f in ("longitude", "lon", "lng", "long")), None)
+
+        if not cam_col or not lat_col or not lon_col:
+            # Check if this is a 3-column headerless or positional CSV
+            first_line_parts = [p.strip() for p in lines[0].split(",")]
+            if len(first_line_parts) >= 3:
+                # Re-parse as positional
+                pos_reader = csv.reader(io.StringIO("\n".join(lines)))
+                for row_idx, row in enumerate(pos_reader):
+                    if not row or len(row) < 3:
+                        continue
+                    # Skip header if it contains text like 'camera' or 'latitude'
+                    if row_idx == 0 and any(h in row[0].lower() for h in ("cam", "station", "code")):
+                        continue
+                    c_id = row[0].strip()
+                    try:
+                        lat = float(row[1].strip())
+                        lon = float(row[2].strip())
+                        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
+                            errors.append(f"Row {row_idx+1}: Coordinates out of range (lat: {lat}, lon: {lon}) for camera {c_id}")
+                            continue
+                        st_name = row[3].strip() if len(row) > 3 else f"Camera Station {c_id}"
+                        zone = row[4].strip().lower() if len(row) > 4 else "core"
+                        stations[c_id] = {
+                            "camera_id": c_id,
+                            "latitude": lat,
+                            "longitude": lon,
+                            "station_name": st_name,
+                            "zone": zone if zone in ("core", "buffer", "corridor") else "core"
+                        }
+                    except ValueError:
+                        if row_idx > 0:
+                            errors.append(f"Row {row_idx+1}: Invalid coordinate numbers for camera {c_id}")
+                return {"stations": stations, "errors": errors, "warnings": warnings}
+            else:
+                return {
+                    "stations": {},
+                    "errors": [f"Missing required columns in CSV. Required: camera_id, latitude, longitude. Found: {', '.join(fieldnames)}"],
+                    "warnings": []
+                }
+
+        for idx, row in enumerate(reader):
+            clean_row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+            c_id = clean_row.get(cam_col, "").strip()
+            if not c_id:
+                warnings.append(f"Row {idx+2}: Missing camera ID, skipped.")
+                continue
+
+            lat_raw = clean_row.get(lat_col, "").strip()
+            lon_raw = clean_row.get(lon_col, "").strip()
+
+            if not lat_raw or not lon_raw:
+                warnings.append(f"Row {idx+2} ({c_id}): Missing latitude/longitude values.")
+                continue
+
+            try:
+                lat = float(lat_raw)
+                lon = float(lon_raw)
+            except ValueError:
+                errors.append(f"Row {idx+2} ({c_id}): Non-numeric coordinates '{lat_raw}', '{lon_raw}'.")
+                continue
+
+            if not (-90.0 <= lat <= 90.0):
+                errors.append(f"Row {idx+2} ({c_id}): Latitude {lat} out of valid range [-90, +90].")
+                continue
+            if not (-180.0 <= lon <= 180.0):
+                errors.append(f"Row {idx+2} ({c_id}): Longitude {lon} out of valid range [-180, +180].")
+                continue
+
+            # Duplicate camera ID check
+            if c_id in stations:
+                prev = stations[c_id]
+                if prev["latitude"] != lat or prev["longitude"] != lon:
+                    warnings.append(f"Duplicate camera ID '{c_id}' with different coordinates: ({prev['latitude']}, {prev['longitude']}) vs ({lat}, {lon}). Using latest.")
+
+            st_name = clean_row.get("station_name") or clean_row.get("name") or f"Camera Station {c_id}"
+            zone = (clean_row.get("zone") or "core").strip().lower()
+
+            stations[c_id] = {
+                "camera_id": c_id,
+                "latitude": lat,
+                "longitude": lon,
+                "station_name": st_name,
+                "zone": zone if zone in ("core", "buffer", "corridor") else "core"
+            }
+
+        return {
+            "stations": stations,
+            "errors": errors,
+            "warnings": warnings
+        }
+
+    def validate_intake(
+        self,
+        folder_path: Optional[str | Path] = None,
+        coordinates_csv_content: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Validates the complete 3-step intake:
+        1. Discovered images and folder structure
+        2. Uploaded coordinates CSV validity
+        3. Image -> Camera -> Coordinates matching rates
+        """
+        images = self.scan_folder(folder_path) if folder_path else []
+        folder_stations = set()
+        for img in images:
+            st = self.extract_station_code(img)
+            if st:
+                folder_stations.add(st)
+
+        csv_result = self.parse_coordinates_csv_content(coordinates_csv_content) if coordinates_csv_content else {"stations": {}, "errors": [], "warnings": []}
+        csv_stations = csv_result["stations"]
+
+        matched_stations = [s for s in folder_stations if s in csv_stations]
+        unmatched_folder_stations = [s for s in folder_stations if s not in csv_stations]
+        unmatched_csv_stations = [s for s in csv_stations if s not in folder_stations]
+
+        warnings = list(csv_result.get("warnings", []))
+        if unmatched_folder_stations and len(csv_stations) > 0:
+            warnings.append(f"{len(unmatched_folder_stations)} camera folders ({', '.join(unmatched_folder_stations[:3])}) do not have coordinates in the CSV.")
+        if unmatched_csv_stations and len(images) > 0:
+            warnings.append(f"{len(unmatched_csv_stations)} camera stations listed in CSV have no matching photos in the selected folder.")
+
+        is_valid = len(csv_result.get("errors", [])) == 0 and (len(images) > 0 or len(csv_stations) > 0)
+
+        return {
+            "valid": is_valid,
+            "total_images": len(images),
+            "total_stations_detected": len(folder_stations),
+            "detected_stations": sorted(list(folder_stations)),
+            "csv_stations_count": len(csv_stations),
+            "matched_stations_count": len(matched_stations),
+            "unmatched_folder_stations": sorted(unmatched_folder_stations),
+            "unmatched_csv_stations": sorted(unmatched_csv_stations),
+            "errors": csv_result.get("errors", []),
+            "warnings": warnings
+        }
+
     def scan_folder_info(self, folder_path: Path | str) -> Dict[str, Any]:
         folder = Path(folder_path)
         if not folder.exists():
@@ -206,7 +365,8 @@ class IngestionManager:
         db: Session,
         batch_id: str,
         folder_path: Path | str,
-        station_id_override: Optional[str] = None
+        station_id_override: Optional[str] = None,
+        coordinates_csv_content: Optional[str] = None
     ) -> Dict[str, Any]:
         folder = Path(folder_path)
         images = self.scan_folder(folder_path)
@@ -215,6 +375,31 @@ class IngestionManager:
         csv_records = []
         for csv_f in csv_files:
             csv_records.extend(self.parse_csv_file(csv_f))
+
+        # Pre-seed Camera Stations from uploaded Coordinates CSV
+        if coordinates_csv_content:
+            coords_res = self.parse_coordinates_csv_content(coordinates_csv_content)
+            for c_id, s_data in coords_res["stations"].items():
+                station = db.query(CameraStation).filter(CameraStation.code == c_id).first()
+                if not station:
+                    station = CameraStation(
+                        code=c_id,
+                        name=s_data.get("station_name", f"Camera Station {c_id}"),
+                        latitude=s_data.get("latitude"),
+                        longitude=s_data.get("longitude"),
+                        zone=s_data.get("zone", "core"),
+                        range_beat="Turia Range",
+                        status="active"
+                    )
+                    db.add(station)
+                else:
+                    station.latitude = s_data.get("latitude")
+                    station.longitude = s_data.get("longitude")
+                    if s_data.get("station_name"):
+                        station.name = s_data["station_name"]
+                    if s_data.get("zone"):
+                        station.zone = s_data["zone"]
+            db.flush()
 
         # 1. Create Safe Local Workspace
         workspace_dir = settings.BASE_DIR / "workspace" / "batches" / batch_id
@@ -469,6 +654,9 @@ class IngestionManager:
                     )
                     batch_state["processed"] += 1
                     cname = result.get("class_name", "wildlife")
+
+                    if result.get("status") == "duplicate":
+                        batch_state["duplicates"] += 1
 
                     if cname == "blank":
                         batch_state["blank"] += 1
