@@ -28,21 +28,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const checkAuth = async () => {
+      const token = ApiClient.getToken();
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
       try {
         const u = await ApiClient.getMe();
         setUser(u);
       } catch (err) {
-        // In offline field deployment, default to admin if no session is stored
-        const token = ApiClient.getToken();
-        if (!token) {
-          try {
-            const res = await ApiClient.login({ email: 'admin@pench.gov.in', password: 'pench123' });
-            ApiClient.setToken(res.access_token);
-            setUser(res.user);
-          } catch (_) {
-            setUser(null);
-          }
-        }
+        ApiClient.setToken(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
