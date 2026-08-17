@@ -4,9 +4,10 @@ import { SyncProvider } from './context/SyncContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Loader2, Trees } from 'lucide-react';
 
 // Pages
+import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { IngestionPage } from './pages/IngestionPage';
 import { CataloguePage } from './pages/CataloguePage';
@@ -20,9 +21,27 @@ import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mapFocus, setMapFocus] = useState<{ lat?: number; lon?: number; station?: string } | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0d1015] flex flex-col items-center justify-center text-slate-300 font-mono text-xs gap-3 select-none">
+        <div className="w-10 h-10 rounded-lg bg-[#181d26] border border-[#2a3140] flex items-center justify-center text-emerald-400 font-bold shadow-inner">
+          <Trees className="w-5 h-5 text-emerald-400" />
+        </div>
+        <div className="flex items-center gap-2 text-slate-400">
+          <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+          <span>Initializing Pench Field Terminal...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   const handleNavigateToMap = (params?: { lat?: number; lon?: number; station?: string }) => {
     if (params) setMapFocus(params);
