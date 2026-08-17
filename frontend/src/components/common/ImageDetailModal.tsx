@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ApiClient } from '../../api/client';
+import { ApiClient, resolveMediaUrl } from '../../api/client';
 import { CameraTrapImage } from './CameraTrapImage';
 import { 
   X, CheckCircle, AlertTriangle, ShieldCheck, MapPin, 
@@ -148,7 +148,7 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({ imageId, onC
                           <div className="text-[10px] font-mono text-slate-400 uppercase">1. Actual Tiger Crop</div>
                           <div className="border border-[#2e3544] rounded overflow-hidden bg-black aspect-video">
                             <img 
-                              src={`http://localhost:8000/api/v1/images/${data.id}/crop`} 
+                              src={resolveMediaUrl(data.crop_url || `/api/v1/images/${data.id}/crop`) || ''} 
                               alt="Tiger Crop" 
                               className="w-full h-full object-contain"
                               onError={(e) => {
@@ -163,7 +163,7 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({ imageId, onC
                           <div className="text-[10px] font-mono text-slate-400 uppercase">2. Flank Stripe Crop ({data.flank_side})</div>
                           <div className="border border-[#2e3544] rounded overflow-hidden bg-black aspect-video">
                             <img 
-                              src={`http://localhost:8000/api/v1/images/${data.id}/flank`} 
+                              src={resolveMediaUrl(data.flank_url || `/api/v1/images/${data.id}/flank`) || ''} 
                               alt="Flank Crop" 
                               className="w-full h-full object-contain"
                               onError={(e) => {

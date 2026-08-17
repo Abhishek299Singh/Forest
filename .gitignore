@@ -25,6 +25,7 @@ backend/data/*.db-journal
 backend/data/*.db-wal
 backend/data/*.db-shm
 backend/workspace/batches/
+backend/data_backup/
 .pytest_cache/
 
 # IDE & OS

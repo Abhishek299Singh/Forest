@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ImageOff, ZoomIn, X } from 'lucide-react';
+import { resolveMediaUrl } from '../../api/client';
 
 interface CameraTrapImageProps {
   src?: string | null;
@@ -22,12 +23,14 @@ export const CameraTrapImage: React.FC<CameraTrapImageProps> = ({
   const [error, setError] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
+  const resolvedSrc = resolveMediaUrl(src);
+
   const aspectClass = 
     aspectRatio === 'video' ? 'aspect-video' :
     aspectRatio === 'square' ? 'aspect-square' :
     aspectRatio === 'wide' ? 'aspect-[16/9]' : '';
 
-  if (!src || error) {
+  if (!resolvedSrc || error) {
     return (
       <div className={`bg-[#11141a] border border-[#232834] rounded flex flex-col items-center justify-center text-slate-500 text-[10px] p-2 select-none ${aspectClass} ${className}`}>
         <ImageOff className="w-4 h-4 text-slate-600 mb-1" />
@@ -47,7 +50,7 @@ export const CameraTrapImage: React.FC<CameraTrapImageProps> = ({
         )}
 
         <img
-          src={src}
+          src={resolvedSrc}
           alt={alt}
           loading="lazy"
           onLoad={() => setLoaded(true)}
@@ -93,7 +96,7 @@ export const CameraTrapImage: React.FC<CameraTrapImageProps> = ({
               </button>
             </div>
             <div className="max-h-[75vh] flex items-center justify-center bg-[#0d1015] rounded overflow-hidden">
-              <img src={src} alt={alt} className="max-h-[75vh] w-auto object-contain" />
+              <img src={resolvedSrc} alt={alt} className="max-h-[75vh] w-auto object-contain" />
             </div>
             {caption && (
               <div className="text-[11px] text-slate-400 font-mono pt-1">

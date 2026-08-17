@@ -162,7 +162,7 @@ def remove_dataset(dataset_name: str, force: bool = False, dry_run: bool = False
             db.query(CameraStation).delete()
 
             # Clean disk files in managed storage
-            for d in [settings.IMAGES_DIR, settings.CROPS_DIR, settings.QUARANTINE_DIR]:
+            for d in [settings.IMAGES_DIR, settings.CROPS_DIR, settings.QUARANTINE_DIR, settings.THUMBNAILS_DIR]:
                 if d.exists():
                     for item in d.iterdir():
                         if item.is_file() and not item.name.startswith("."):

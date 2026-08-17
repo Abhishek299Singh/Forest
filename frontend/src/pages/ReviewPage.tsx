@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ApiClient } from '../api/client';
+import { ApiClient, resolveMediaUrl } from '../api/client';
 import { ReviewTask } from '../types';
 import { CameraTrapImage } from '../components/common/CameraTrapImage';
 import { CheckSquare, Check, X, PlusCircle, Trees, ZoomIn, ZoomOut } from 'lucide-react';
@@ -212,9 +212,12 @@ export const ReviewPage: React.FC = () => {
                     <div className="h-60 rounded bg-[#181d26] border border-[#232834] overflow-hidden flex items-center justify-center relative">
                       {selectedTask.image?.image_url ? (
                         <img
-                          src={selectedTask.image?.image_url}
+                          src={resolveMediaUrl(selectedTask.image?.image_url) || ''}
                           alt="target"
                           style={getImageStyle()}
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
                           className="w-full h-full object-contain"
                         />
                       ) : (

@@ -1,4 +1,16 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+
+export function resolveMediaUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${API_ORIGIN}${cleanPath}`;
+}
+
+const BASE_URL = API_BASE_URL;
 
 export class ApiClient {
   private static token: string | null = localStorage.getItem('pench_token');
