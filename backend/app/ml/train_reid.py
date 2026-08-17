@@ -13,11 +13,15 @@ Usage:
 import os
 import sys
 import json
-import argparse
 import time
+import argparse
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any
+
+backend_dir = Path(__file__).resolve().parent.parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
 from app.ml.amur_dataset import AmurTigerDataset
 from app.ml.stripe_embedder import StripeEmbedder

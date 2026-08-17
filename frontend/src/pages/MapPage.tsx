@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ApiClient } from '../api/client';
-import { TigerSummary, CameraStation, AlertItem, TerritoryOverlap } from '../types';
+import { TigerSummary, CameraStation, AlertItem, TerritoryOverlap, TigerMovementTrack, DetectionResult } from '../types';
 import { ReserveMap } from '../components/map/ReserveMap';
 import { Map, Activity, Layers, MapPin } from 'lucide-react';
 
@@ -14,6 +14,8 @@ export const MapPage: React.FC<MapPageProps> = ({ initialFocus }) => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [overlaps, setOverlaps] = useState<TerritoryOverlap[]>([]);
   const [gisData, setGisData] = useState<any>(null);
+  const [tracks, setTracks] = useState<TigerMovementTrack[]>([]);
+  const [detections, setDetections] = useState<DetectionResult[]>([]);
   const [selectedStation, setSelectedStation] = useState<CameraStation | null>(null);
 
   const focusCoords: [number, number] | null = (initialFocus?.lon != null && initialFocus?.lat != null)
@@ -23,21 +25,25 @@ export const MapPage: React.FC<MapPageProps> = ({ initialFocus }) => {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [stRes, tRes, alRes, ovRes, gisRes] = await Promise.all([
+        const [stRes, tRes, alRes, ovRes, gisRes, trkRes, detRes] = await Promise.all([
           ApiClient.getStations(),
           ApiClient.getTigers(),
           ApiClient.getAlerts(),
           ApiClient.getTerritoryOverlaps(),
           ApiClient.getGIS(),
+          ApiClient.getMovementTracks(),
+          ApiClient.getRecentDetections(100),
         ]);
-        setStations(stRes);
-        setTigers(tRes);
-        setAlerts(alRes);
-        setOverlaps(ovRes);
+        setStations(stRes || []);
+        setTigers(tRes || []);
+        setAlerts(alRes || []);
+        setOverlaps(ovRes || []);
         setGisData(gisRes?.data);
+        setTracks(trkRes || []);
+        setDetections(detRes || []);
 
         if (initialFocus?.station) {
-          const matched = stRes.find((s: CameraStation) => s.code === initialFocus.station);
+          const matched = stRes?.find((s: CameraStation) => s.code === initialFocus.station);
           if (matched) setSelectedStation(matched);
         }
       } catch (_) {}
@@ -55,7 +61,7 @@ export const MapPage: React.FC<MapPageProps> = ({ initialFocus }) => {
             <span>Pench Tiger Reserve Geospatial Map</span>
           </h2>
           <p className="text-[11px] text-slate-400">
-            Core Sanctuary boundary, Buffer zone, camera trap layout, and Minimum Convex Polygon (MCP 95%) territory overlaps.
+            Core Sanctuary boundary, Buffer zone, camera trap layout, individual tiger sightings, and Minimum Convex Polygon (MCP 95%) territory overlaps.
           </p>
         </div>
 
@@ -75,6 +81,9 @@ export const MapPage: React.FC<MapPageProps> = ({ initialFocus }) => {
             tigers={tigers}
             alerts={alerts}
             gisData={gisData}
+            tracks={tracks}
+            detections={detections}
+            focusCoordinates={focusCoords}
             onSelectStation={(st) => setSelectedStation(st)}
           />
         </div>

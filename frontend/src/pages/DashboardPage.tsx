@@ -171,6 +171,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               tigers={tigers}
               alerts={alerts}
               tracks={tracks}
+              detections={recentDetections}
               gisData={gisData}
               onSelectStation={() => onNavigate('stations')}
               onSelectTiger={() => onNavigate('catalogue')}

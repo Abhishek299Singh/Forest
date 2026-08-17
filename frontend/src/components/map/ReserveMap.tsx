@@ -8,7 +8,7 @@ interface ReserveMapProps {
   stations?: CameraStation[];
   tigers?: TigerSummary[];
   alerts?: AlertItem[];
-  detections?: DetectionResult[];
+  detections?: any[];
   tracks?: TigerMovementTrack[];
   gisData?: any;
   selectedTigerId?: string | null;
@@ -383,10 +383,35 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
     }
 
     // 2. Individual Tiger Detection Markers (🐅 Icon)
-    if (showDetections && detections.length > 0) {
-      detections.forEach((d, idx) => {
+    const allPlotDetections: DetectionResult[] = [...detections];
+    if (allPlotDetections.length === 0 && tracks.length > 0) {
+      tracks.forEach((tr) => {
+        tr.points?.forEach((pt) => {
+          allPlotDetections.push({
+            id: pt.sighting_id,
+            image_id: pt.image_id,
+            image_filename: pt.camera_code ? `${pt.camera_code}_capture.jpg` : 'capture.jpg',
+            animal: 'Tiger',
+            tiger_id: tr.tiger_code || tr.tiger_id,
+            confidence: pt.confidence || 0.95,
+            confidence_pct: pt.confidence_pct || '95%',
+            latitude: pt.latitude,
+            longitude: pt.longitude,
+            camera_id: pt.camera_code,
+            timestamp: pt.captured_at,
+            timestamp_formatted: pt.timestamp_formatted,
+            thumbnail_url: pt.thumbnail_url,
+            image_url: pt.image_url,
+            behavior: pt.behavior,
+          } as any);
+        });
+      });
+    }
+
+    if (showDetections && allPlotDetections.length > 0) {
+      allPlotDetections.forEach((d, idx) => {
         if (d.latitude == null || d.longitude == null) return;
-        if (selectedFilterTiger !== 'all' && d.tiger_id !== selectedFilterTiger) return;
+        if (selectedFilterTiger !== 'all' && d.tiger_id !== selectedFilterTiger && (d as any).tiger_code !== selectedFilterTiger) return;
 
         const el = document.createElement('div');
         el.className = 'cursor-pointer group';

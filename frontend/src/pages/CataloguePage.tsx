@@ -254,7 +254,9 @@ export const CataloguePage: React.FC = () => {
                     <div>
                       <span className="text-slate-400">Territory Centroid:</span>
                       <div className="font-mono text-slate-200 font-medium">
-                        {selectedTiger.centroid ? `${selectedTiger.centroid.lat.toFixed(4)}° N, ${selectedTiger.centroid.lon.toFixed(4)}° E` : 'Calculating...'}
+                        {selectedTiger.centroid && selectedTiger.centroid.lat != null && selectedTiger.centroid.lon != null
+                          ? `${Number(selectedTiger.centroid.lat).toFixed(4)}° N, ${Number(selectedTiger.centroid.lon).toFixed(4)}° E`
+                          : 'Calculating...'}
                       </div>
                     </div>
                     <div>
@@ -336,7 +338,11 @@ export const CataloguePage: React.FC = () => {
                           </td>
                           <td className="p-2 font-medium text-slate-200">{s.station_code} ({s.station_name})</td>
                           <td className="p-2 capitalize">{s.zone}</td>
-                          <td className="p-2 font-mono text-[11px] text-slate-400">{s.latitude.toFixed(4)}, {s.longitude.toFixed(4)}</td>
+                          <td className="p-2 font-mono text-[11px] text-slate-400">
+                            {s.latitude != null && s.longitude != null
+                              ? `${Number(s.latitude).toFixed(4)}, ${Number(s.longitude).toFixed(4)}`
+                              : 'GPS Unavailable'}
+                          </td>
                           <td className="p-2 font-mono text-slate-300">{s.captured_at ? s.captured_at.replace('T', ' ').slice(0, 19) : 'N/A'}</td>
                           <td className="p-2 font-mono text-emerald-400">{Math.round(s.confidence * 100)}%</td>
                         </tr>

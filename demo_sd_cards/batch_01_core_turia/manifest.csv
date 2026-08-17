@@ -1,0 +1,4 @@
+image,camera_id,timestamp,latitude,longitude,animal,tiger_id,confidence,behavior,sex,age
+ST01_001_tiger.jpg,ST-01,2026-08-16 06:15:00,21.7584,79.3142,tiger,PTR-T-014,0.95,walking,Female,Adult
+ST01_002_blank.jpg,ST-01,2026-08-16 08:30:00,21.7584,79.3142,blank,,0.98,none,Unknown,Unknown
+ST01_003_tiger.jpg,ST-01,2026-08-16 18:45:00,21.7584,79.3142,tiger,PTR-T-014,0.94,resting,Female,Adult

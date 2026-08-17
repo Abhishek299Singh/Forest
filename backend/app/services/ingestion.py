@@ -923,8 +923,15 @@ class IngestionManager:
             "duplicates": batch_state["duplicates"],
             "locations_found": batch_state["locations_found"],
             "locations_unavailable": batch_state["locations_unavailable"],
+            "data_quality": {
+                "locations_found": batch_state["locations_found"],
+                "locations_unavailable": batch_state["locations_unavailable"],
+                "missing_timestamps": batch_state["missing_timestamps"],
+                "clock_drift_warnings": batch_state["clock_drift_warnings"]
+            },
             "errors": batch_state["errors"],
             "processing_time_seconds": processing_time_s,
+            "images_per_minute": round((total_items / max(0.1, processing_time_s)) * 60, 1),
             "detections": detection_records
         }
 
