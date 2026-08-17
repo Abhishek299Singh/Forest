@@ -23,10 +23,34 @@ from app.api.reports import router as reports_router
 from app.api.ws import router as ws_router
 from app.api.settings import router as settings_router
 
+def ensure_sqlite_schema(db_engine):
+    from sqlalchemy import text
+    columns_to_ensure = [
+        ("detections", "behavior", "TEXT"),
+        ("detections", "sex", "TEXT"),
+        ("detections", "age_class", "TEXT"),
+        ("detections", "direction", "TEXT"),
+        ("detections", "location_name", "TEXT"),
+        ("detections", "image_quality", "TEXT"),
+        ("tiger_sightings", "behavior", "TEXT"),
+        ("tiger_sightings", "direction", "TEXT"),
+        ("tiger_sightings", "location_name", "TEXT"),
+        ("camera_stations", "camera_status", "TEXT DEFAULT 'operational'"),
+        ("camera_stations", "battery_level", "INTEGER DEFAULT 95"),
+    ]
+    with db_engine.connect() as conn:
+        for table, col, col_type in columns_to_ensure:
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                conn.commit()
+            except Exception:
+                pass
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB tables
     Base.metadata.create_all(bind=engine)
+    ensure_sqlite_schema(engine)
     # Seed baseline dataset
     db = SessionLocal()
     try:

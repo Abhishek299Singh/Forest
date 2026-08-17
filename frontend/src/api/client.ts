@@ -138,10 +138,10 @@ export class ApiClient {
     });
   }
 
-  static async validateIntake(folder_path?: string, coordinates_csv?: string) {
+  static async validateIntake(folder_path?: string, coordinates_csv?: string, image_filenames?: string[]) {
     return this.request<any>('/triage/validate-intake', {
       method: 'POST',
-      body: JSON.stringify({ folder_path, coordinates_csv }),
+      body: JSON.stringify({ folder_path, coordinates_csv, image_filenames }),
     });
   }
 
@@ -152,7 +152,7 @@ export class ApiClient {
     });
   }
 
-  static async ingestFiles(files: File[], station_id?: string, coordinates_csv?: string) {
+  static async ingestFiles(files: File[], station_id?: string, coordinates_csv?: string, csv_file?: File | null) {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append('files', file, file.name);
@@ -162,6 +162,9 @@ export class ApiClient {
     }
     if (coordinates_csv) {
       formData.append('coordinates_csv', coordinates_csv);
+    }
+    if (csv_file) {
+      formData.append('csv_file', csv_file, csv_file.name);
     }
 
     const headers: Record<string, string> = {};
@@ -186,6 +189,10 @@ export class ApiClient {
     }
 
     return response.json();
+  }
+
+  static async getMovementTracks() {
+    return this.request<any[]>('/triage/movement-tracks');
   }
 
   static async ingestCsvData(csv_content: string, station_id?: string) {

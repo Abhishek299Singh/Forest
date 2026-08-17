@@ -207,3 +207,56 @@ export interface TerritoryOverlap {
   overlap_pct_a: number;
   overlap_pct_b: number;
 }
+
+export interface DetectionResult {
+  id: string;
+  image_filename: string;
+  image_id?: string;
+  image_url?: string | null;
+  thumbnail_url?: string | null;
+  image_available: boolean;
+  camera_id: string;
+  timestamp: string;
+  timestamp_formatted?: string;
+  animal: string;
+  tiger_id: string;
+  confidence: number;
+  confidence_pct?: string;
+  latitude: number | null;
+  longitude: number | null;
+  has_location: boolean;
+  behavior?: string;
+  sex?: string;
+  age_class?: string;
+  direction?: string;
+  location_name?: string;
+  camera_status?: string;
+  battery_level?: number;
+  image_quality?: string;
+}
+
+export interface TigerMovementTrack {
+  tiger_id: string;
+  tiger_code: string;
+  callsign: string;
+  sex?: string;
+  sightings_count: number;
+  points: {
+    sighting_id: string;
+    latitude: number;
+    longitude: number;
+    captured_at?: string;
+    timestamp_formatted?: string;
+    camera_code: string;
+    confidence: number;
+    confidence_pct?: string;
+    image_id?: string;
+    thumbnail_url?: string;
+    image_url?: string;
+    behavior?: string;
+    location_name?: string;
+  }[];
+  can_calculate_range: boolean;
+  range_message: string;
+  hull_polygon: [number, number][];
+}

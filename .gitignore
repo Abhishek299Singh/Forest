@@ -24,6 +24,9 @@ yarn-error.log*
 backend/data/*.db-journal
 backend/data/*.db-wal
 backend/data/*.db-shm
+backend/data/images/
+backend/data/thumbnails/
+backend/data/crops/
 backend/workspace/batches/
 backend/data_backup/
 .pytest_cache/

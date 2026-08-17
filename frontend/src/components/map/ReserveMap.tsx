@@ -1,28 +1,35 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import { CameraStation, TigerSummary, AlertItem } from '../../types';
-import { Layers, MapPin, AlertOctagon } from 'lucide-react';
+import { CameraStation, TigerSummary, AlertItem, DetectionResult, TigerMovementTrack } from '../../types';
+import { resolveMediaUrl } from '../../api/client';
+import { Layers, MapPin, AlertOctagon, Camera, Eye } from 'lucide-react';
 
 interface ReserveMapProps {
   stations?: CameraStation[];
   tigers?: TigerSummary[];
   alerts?: AlertItem[];
+  detections?: DetectionResult[];
+  tracks?: TigerMovementTrack[];
   gisData?: any;
   selectedTigerId?: string | null;
   focusCoordinates?: [number, number] | null; // [lon, lat]
   onSelectStation?: (station: CameraStation) => void;
   onSelectTiger?: (tigerId: string) => void;
+  onInspectImage?: (imageId: string) => void;
 }
 
 export const ReserveMap: React.FC<ReserveMapProps> = ({
   stations = [],
   tigers = [],
   alerts = [],
+  detections = [],
+  tracks = [],
   gisData,
   selectedTigerId,
   focusCoordinates,
   onSelectStation,
   onSelectTiger,
+  onInspectImage,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -31,9 +38,10 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
   const [showCore, setShowCore] = useState(true);
   const [showBuffer, setShowBuffer] = useState(true);
   const [showStations, setShowStations] = useState(true);
-  const [showTigers, setShowTigers] = useState(true);
+  const [showDetections, setShowDetections] = useState(true);
+  const [showPaths, setShowPaths] = useState(true);
+  const [showRanges, setShowRanges] = useState(true);
   const [showAlerts, setShowAlerts] = useState(true);
-  const [showVillages, setShowVillages] = useState(true);
   const [selectedFilterTiger, setSelectedFilterTiger] = useState<string>('all');
   const [basemapType, setBasemapType] = useState<'osm' | 'topo' | 'satellite'>('osm');
 
@@ -51,6 +59,9 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
     }
   };
 
+  const TRACK_COLORS = ['#f59e0b', '#10b981', '#38bdf8', '#ec4899', '#a855f7', '#fb923c'];
+
+  // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -63,7 +74,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
             type: 'raster',
             tiles: [getTileUrl(basemapType)],
             tileSize: 256,
-            attribution: '© OpenStreetMap contributors | Pench Forest Reserve'
+            attribution: '© OpenStreetMap contributors | Pench Wildlife Intelligence'
           }
         },
         layers: [
@@ -77,7 +88,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         ]
       },
       center: PENCH_CENTER,
-      zoom: 10.8,
+      zoom: 11,
       attributionControl: { compact: false }
     });
 
@@ -113,7 +124,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         source: 'buffer-boundary',
         paint: {
           'fill-color': '#b45309',
-          'fill-opacity': 0.1
+          'fill-opacity': 0.08
         }
       });
 
@@ -144,7 +155,7 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
         source: 'core-boundary',
         paint: {
           'fill-color': '#166534',
-          'fill-opacity': 0.22
+          'fill-opacity': 0.18
         }
       });
 
@@ -164,60 +175,200 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
     };
   }, [gisData, basemapType]);
 
+  // Auto Bounds Calculation & Focus Coordinates
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+
     if (focusCoordinates && focusCoordinates[0] != null && focusCoordinates[1] != null) {
       map.flyTo({
         center: focusCoordinates,
-        zoom: 14,
+        zoom: 14.5,
         essential: true,
       });
-    } else if (stations.length > 0) {
-      const validSt = stations.find(s => s.latitude != null && s.longitude != null);
-      if (validSt) {
-        map.flyTo({
-          center: [validSt.longitude, validSt.latitude],
-          zoom: 12.5,
-          essential: true,
+      return;
+    }
+
+    // Auto-calculate bounds from all active coordinates
+    const bounds = new maplibregl.LngLatBounds();
+    let pointCount = 0;
+
+    stations.forEach((st) => {
+      if (st.latitude != null && st.longitude != null) {
+        bounds.extend([st.longitude, st.latitude]);
+        pointCount++;
+      }
+    });
+
+    detections.forEach((d) => {
+      if (d.latitude != null && d.longitude != null) {
+        bounds.extend([d.longitude, d.latitude]);
+        pointCount++;
+      }
+    });
+
+    tracks.forEach((t) => {
+      t.points?.forEach((p) => {
+        if (p.latitude != null && p.longitude != null) {
+          bounds.extend([p.longitude, p.latitude]);
+          pointCount++;
+        }
+      });
+    });
+
+    if (pointCount > 0) {
+      map.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 14,
+        duration: 800
+      });
+    }
+  }, [focusCoordinates, stations, detections, tracks]);
+
+  // Render Movement Paths & Observed Range Polygons
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    // Clean previous tracks & ranges
+    ['tiger-paths', 'tiger-ranges'].forEach((sourceId) => {
+      if (map.getLayer(`${sourceId}-line`)) map.removeLayer(`${sourceId}-line`);
+      if (map.getLayer(`${sourceId}-fill`)) map.removeLayer(`${sourceId}-fill`);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+    });
+
+    // 1. Movement Paths GeoJSON
+    if (showPaths && tracks.length > 0) {
+      const pathFeatures: any[] = [];
+      tracks.forEach((track, idx) => {
+        if (selectedFilterTiger !== 'all' && track.tiger_id !== selectedFilterTiger && track.tiger_code !== selectedFilterTiger) return;
+        if (!track.points || track.points.length < 2) return;
+
+        const coords = track.points.map((p) => [p.longitude, p.latitude]);
+        const color = TRACK_COLORS[idx % TRACK_COLORS.length];
+
+        pathFeatures.push({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: coords },
+          properties: {
+            tiger_id: track.tiger_id,
+            tiger_code: track.tiger_code,
+            callsign: track.callsign,
+            color: color
+          }
+        });
+      });
+
+      if (pathFeatures.length > 0) {
+        map.addSource('tiger-paths', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: pathFeatures }
+        });
+
+        map.addLayer({
+          id: 'tiger-paths-line',
+          type: 'line',
+          source: 'tiger-paths',
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 3.5,
+            'line-opacity': 0.85
+          }
         });
       }
     }
-  }, [focusCoordinates, stations]);
 
+    // 2. Observed Range Polygons GeoJSON
+    if (showRanges && tracks.length > 0) {
+      const rangeFeatures: any[] = [];
+      tracks.forEach((track, idx) => {
+        if (selectedFilterTiger !== 'all' && track.tiger_id !== selectedFilterTiger && track.tiger_code !== selectedFilterTiger) return;
+        if (!track.can_calculate_range || !track.hull_polygon || track.hull_polygon.length < 3) return;
+
+        const color = TRACK_COLORS[idx % TRACK_COLORS.length];
+        rangeFeatures.push({
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [track.hull_polygon] },
+          properties: {
+            tiger_id: track.tiger_id,
+            tiger_code: track.tiger_code,
+            color: color
+          }
+        });
+      });
+
+      if (rangeFeatures.length > 0) {
+        map.addSource('tiger-ranges', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: rangeFeatures }
+        });
+
+        map.addLayer({
+          id: 'tiger-ranges-fill',
+          type: 'fill',
+          source: 'tiger-ranges',
+          paint: {
+            'fill-color': ['get', 'color'],
+            'fill-opacity': 0.15
+          }
+        });
+
+        map.addLayer({
+          id: 'tiger-ranges-line',
+          type: 'line',
+          source: 'tiger-ranges',
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 2,
+            'line-dasharray': [2, 2]
+          }
+        });
+      }
+    }
+  }, [tracks, showPaths, showRanges, selectedFilterTiger]);
+
+  // Render Interactive Map Markers (Cameras, Detections, Alerts)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    markersRef.current.forEach(m => m.remove());
+    markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Stations
+    // 1. Camera Stations Markers (📷 Icon)
     if (showStations && stations.length > 0) {
       stations.forEach((st) => {
         if (st.latitude == null || st.longitude == null) return;
         const el = document.createElement('div');
-        el.className = 'cursor-pointer';
-        
+        el.className = 'cursor-pointer group';
+
         const isBuffer = st.zone === 'buffer';
-        const color = isBuffer ? '#d97706' : '#10b981';
+        const borderColor = isBuffer ? '#d97706' : '#10b981';
 
         el.innerHTML = `
-          <div style="background-color: ${color};" class="w-5 h-5 rounded-full text-[#07100a] font-bold text-[9px] flex items-center justify-center border border-[#07100a] shadow-md font-mono">
-            ${st.code.replace('ST-', '')}
+          <div style="border-color: ${borderColor};" class="w-7 h-7 rounded-full bg-[#0d1015] border-2 flex items-center justify-center shadow-lg transition-transform transform group-hover:scale-110">
+            <span class="text-xs">📷</span>
+          </div>
+          <div class="absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 py-0.2 rounded bg-[#0d1015]/90 text-[8px] font-mono text-slate-300 border border-[#2a3140]">
+            ${st.code}
           </div>
         `;
 
         el.addEventListener('click', () => onSelectStation?.(st));
 
-        const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
-          <div class="text-xs">
-            <div class="font-bold text-emerald-400 font-mono">${st.code} (${st.zone.toUpperCase()})</div>
-            <div class="font-semibold text-emerald-100">${st.name}</div>
-            <div class="text-emerald-400 text-[11px] mt-0.5">${st.range_beat || 'Turia Range'}</div>
-            <div class="text-[11px] text-emerald-200 mt-1.5 pt-1 border-t border-[#1c3525] flex justify-between">
-              <span>${st.active_trap_nights || 0} Trap-nights</span>
-              <span class="text-emerald-400 font-bold">${st.sightings_count || 0} Captures</span>
+        const popup = new maplibregl.Popup({ offset: 12, className: 'dark-popup' }).setHTML(`
+          <div class="p-2 text-xs space-y-1.5 min-w-[180px]">
+            <div class="flex items-center justify-between border-b border-[#2a3140] pb-1">
+              <span class="font-bold text-emerald-400 font-mono">📷 ${st.code}</span>
+              <span class="text-[9px] font-mono px-1 rounded uppercase ${isBuffer ? 'bg-amber-950 text-amber-300' : 'bg-emerald-950 text-emerald-300'}">
+                ${st.zone}
+              </span>
+            </div>
+            <div class="font-semibold text-slate-100">${st.name}</div>
+            <div class="text-[10px] text-slate-400 font-mono">GPS: ${st.latitude.toFixed(4)}° N, ${st.longitude.toFixed(4)}° E</div>
+            <div class="pt-1 border-t border-[#232834] flex items-center justify-between text-[10px] text-slate-300 font-mono">
+              <span>Status: <strong class="text-emerald-400">${st.status || 'Active'}</strong></span>
+              <span>Batt: <strong>${st.battery_level || 95}%</strong></span>
             </div>
           </div>
         `);
@@ -231,39 +382,68 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
       });
     }
 
-    // Tigers
-    if (showTigers && tigers.length > 0) {
-      tigers.forEach((t) => {
-        if (selectedFilterTiger !== 'all' && t.id !== selectedFilterTiger) return;
-        if (!t.centroid || t.centroid.lat == null || t.centroid.lon == null) return;
+    // 2. Individual Tiger Detection Markers (🐅 Icon)
+    if (showDetections && detections.length > 0) {
+      detections.forEach((d, idx) => {
+        if (d.latitude == null || d.longitude == null) return;
+        if (selectedFilterTiger !== 'all' && d.tiger_id !== selectedFilterTiger) return;
 
         const el = document.createElement('div');
-        el.className = 'cursor-pointer';
+        el.className = 'cursor-pointer group';
+
+        const isTiger = d.animal?.toLowerCase() === 'tiger';
+        const isDeer = d.animal?.toLowerCase().includes('deer') || d.animal?.toLowerCase().includes('muntjac') || d.animal?.toLowerCase().includes('sambar');
+        const isCat = d.animal?.toLowerCase().includes('cat') || d.animal?.toLowerCase().includes('bobcat');
+        const isLeopard = d.animal?.toLowerCase().includes('leopard');
+        const isHuman = d.animal?.toLowerCase().includes('human');
+        const isBlank = d.animal?.toLowerCase().includes('blank');
+
+        const iconChar = isTiger ? '🐅' : isDeer ? '🦌' : isCat ? '🐱' : isLeopard ? '🐆' : isHuman ? '👤' : isBlank ? '🍃' : '🐾';
+        const borderCls = isTiger ? 'border-amber-500' : isDeer ? 'border-orange-500' : isCat ? 'border-teal-500' : isLeopard ? 'border-yellow-500' : isHuman ? 'border-rose-500' : 'border-emerald-500';
 
         el.innerHTML = `
-          <div class="relative flex items-center justify-center">
-            <div class="w-6 h-6 rounded-full bg-[#1b221d] border-2 border-amber-500 flex items-center justify-center shadow-lg font-mono text-[9px] font-bold text-amber-300">
-              ID
-            </div>
-            <div class="absolute -bottom-4 whitespace-nowrap px-1 py-0.2 rounded bg-[#07100a] text-[9px] font-mono text-amber-300 border border-[#1c3525]">
-              ${t.tiger_code}
-            </div>
+          <div class="w-8 h-8 rounded-full bg-[#141820] border-2 ${borderCls} flex items-center justify-center shadow-2xl transition-transform transform group-hover:scale-125">
+            <span class="text-sm">${iconChar}</span>
+          </div>
+          <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded bg-black/90 text-[9px] font-mono ${isTiger ? 'text-amber-300 border-amber-800/80' : 'text-slate-200 border-slate-700'} border font-bold">
+            ${isTiger ? (d.tiger_id && d.tiger_id !== '-' ? d.tiger_id : 'Tiger') : d.animal}
           </div>
         `;
 
-        el.addEventListener('click', () => onSelectTiger?.(t.id));
-
-        const popup = new maplibregl.Popup({ offset: 12 }).setHTML(`
-          <div class="text-xs">
-            <div class="font-bold text-amber-400 font-mono">${t.tiger_code} (${t.status.toUpperCase()})</div>
-            <div class="font-semibold text-emerald-100">${t.callsign}</div>
-            <div class="text-emerald-400 text-[11px] mt-0.5">${t.sex || 'Unknown'} • ${t.age_class || 'Adult'} • Range: ${t.primary_zone}</div>
-            <div class="text-emerald-200 mt-1 pt-1 border-t border-[#1c3525]">Territory: <strong class="text-emerald-400">${t.territory_area_km2 || 0} km²</strong></div>
+        const resolvedThumb = resolveMediaUrl(d.thumbnail_url || d.image_url);
+        const popupContent = `
+          <div class="p-2.5 text-xs space-y-2 min-w-[220px]">
+            <div class="flex items-center justify-between border-b border-[#2a3140] pb-1 font-mono">
+              <span class="font-bold ${isTiger ? 'text-amber-400' : 'text-slate-100'} text-[13px] flex items-center gap-1">${iconChar} ${isTiger ? (d.tiger_id && d.tiger_id !== '-' ? d.tiger_id : 'Tiger') : d.animal}</span>
+              <span class="text-emerald-400 font-semibold">${d.confidence_pct || Math.round((d.confidence || 0.9) * 100) + '%'}</span>
+            </div>
+            ${resolvedThumb ? `
+              <div class="w-full h-24 rounded bg-black overflow-hidden border border-[#2e3544]">
+                <img src="${resolvedThumb}" alt="${d.image_filename}" class="w-full h-full object-cover" />
+              </div>
+            ` : ''}
+            <div class="space-y-0.5 text-[11px]">
+              <div class="text-slate-200"><strong>Image:</strong> <span class="font-mono text-slate-300">${d.image_filename}</span></div>
+              <div class="text-slate-200"><strong>Camera:</strong> <span class="font-mono text-emerald-300">${d.camera_id}</span></div>
+              <div class="text-slate-200"><strong>Time:</strong> <span class="font-mono text-slate-300">${d.timestamp_formatted || d.timestamp}</span></div>
+              <div class="text-slate-400 font-mono text-[10px]">${d.latitude.toFixed(4)}° N, ${d.longitude.toFixed(4)}° E</div>
+              ${d.behavior && d.behavior !== '-' ? `<div class="text-slate-300 text-[10px]"><strong>Behavior:</strong> ${d.behavior}</div>` : ''}
+            </div>
+            ${d.image_id ? `
+              <button 
+                onclick="window.dispatchEvent(new CustomEvent('inspect_image', { detail: '${d.image_id}' }))"
+                class="w-full mt-1 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-[10px] font-medium flex items-center justify-center gap-1 transition"
+              >
+                Inspect Capture
+              </button>
+            ` : ''}
           </div>
-        `);
+        `;
+
+        const popup = new maplibregl.Popup({ offset: 14, className: 'dark-popup' }).setHTML(popupContent);
 
         const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([t.centroid.lon, t.centroid.lat])
+          .setLngLat([d.longitude, d.latitude])
           .setPopup(popup)
           .addTo(map);
 
@@ -271,112 +451,115 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
       });
     }
 
-    // Alerts
+    // 3. Alerts Markers (⚠️ Alert Pin)
     if (showAlerts && alerts.length > 0) {
-      alerts.filter(a => a.status === 'active').forEach((al) => {
-        const st = stations.find(s => s.code === al.station_code);
+      alerts.filter((a) => a.status === 'active').forEach((al) => {
+        const st = stations.find((s) => s.code === al.station_code);
         if (!st || st.latitude == null || st.longitude == null) return;
 
         const el = document.createElement('div');
-        el.className = 'cursor-pointer z-30';
+        el.className = 'cursor-pointer z-30 group';
         const isCrit = al.severity === 'CRITICAL';
         const bg = isCrit ? 'bg-rose-600' : 'bg-amber-600';
 
         el.innerHTML = `
-          <div class="w-5 h-5 rounded ${bg} text-white font-bold text-[10px] flex items-center justify-center border border-white shadow-lg font-mono">
-            !
+          <div class="w-6 h-6 rounded ${bg} text-white font-bold text-xs flex items-center justify-center border border-white shadow-xl animate-pulse">
+            ⚠️
           </div>
         `;
 
-        const popup = new maplibregl.Popup({ offset: 12 }).setHTML(`
-          <div class="text-xs max-w-xs">
+        const popup = new maplibregl.Popup({ offset: 12, className: 'dark-popup' }).setHTML(`
+          <div class="p-2 text-xs max-w-xs space-y-1">
             <div class="font-bold font-mono text-[10px] ${isCrit ? 'text-rose-400' : 'text-amber-400'}">${al.severity} MOVEMENT ALERT</div>
-            <div class="font-bold text-emerald-100 mt-0.5">${al.callsign} (${al.tiger_code})</div>
-            <div class="text-emerald-200 text-[11px] mt-1">${al.explanation.what_changed}</div>
+            <div class="font-bold text-slate-100">${al.callsign} (${al.tiger_code})</div>
+            <div class="text-slate-300 text-[11px]">${al.explanation?.what_changed || 'Boundary deviation detected'}</div>
           </div>
         `);
 
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([st.longitude, st.latitude])
           .setPopup(popup)
-          .addTo(map);
-
-        markersRef.current.push(marker);
-      });
-    }
-
-    // Villages
-    if (showVillages && gisData?.villages) {
-      gisData.villages.forEach((v: any) => {
-        const el = document.createElement('div');
-        el.className = 'cursor-pointer';
-        el.innerHTML = `
-          <div class="bg-[#0c1a11]/90 px-1.5 py-0.5 rounded border border-[#1c3525] text-[9px] text-emerald-200 font-medium shadow">
-            🏘️ ${v.name}
-          </div>
-        `;
-
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat(v.coordinates)
           .addTo(map);
 
         markersRef.current.push(marker);
       });
     }
   }, [
-    stations, tigers, alerts, gisData, showStations, showTigers,
-    showAlerts, showVillages, selectedFilterTiger, onSelectStation, onSelectTiger
+    stations, detections, alerts, showStations, showDetections,
+    showAlerts, selectedFilterTiger, onSelectStation, onSelectTiger
   ]);
+
+  // Global listener for inspect_image custom event
+  useEffect(() => {
+    const handleInspect = (e: any) => {
+      if (e.detail && onInspectImage) {
+        onInspectImage(e.detail);
+      }
+    };
+    window.addEventListener('inspect_image', handleInspect);
+    return () => window.removeEventListener('inspect_image', handleInspect);
+  }, [onInspectImage]);
+
+  // Get unique tiger codes for filter
+  const uniqueTigers = Array.from(
+    new Set([
+      ...tigers.map((t) => t.tiger_code),
+      ...detections.filter((d) => d.tiger_id && d.tiger_id !== '-').map((d) => d.tiger_id),
+      ...tracks.map((t) => t.tiger_code)
+    ])
+  );
 
   return (
     <div className="relative w-full h-full bg-[#07100a] flex flex-col">
-      {/* Floating Toolbar */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 bg-[#0c1a11]/95 p-1.5 rounded border border-[#1c3525] shadow text-xs">
+      {/* Top Floating Toolbar */}
+      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 bg-[#0c1a11]/95 p-1.5 rounded border border-[#1c3525] shadow-xl text-xs backdrop-blur-sm">
         <div className="flex items-center gap-1 text-emerald-200 font-medium px-1.5 border-r border-[#1c3525]">
           <Layers className="w-3.5 h-3.5 text-emerald-400" />
           <span>Layers</span>
         </div>
 
         <button
-          onClick={() => setShowCore(!showCore)}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showCore ? 'bg-[#162b1e] text-emerald-300 border border-[#2d523b]' : 'bg-[#07100a] text-emerald-600'
-          }`}
-        >
-          Core Sanctuary
-        </button>
-
-        <button
-          onClick={() => setShowBuffer(!showBuffer)}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showBuffer ? 'bg-[#2c1e15] text-amber-300 border border-[#5e3f2b]' : 'bg-[#07100a] text-emerald-600'
-          }`}
-        >
-          Buffer Zone
-        </button>
-
-        <button
           onClick={() => setShowStations(!showStations)}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showStations ? 'bg-[#122417] text-emerald-200 border border-[#1c3525]' : 'bg-[#07100a] text-emerald-600'
+          className={`px-2 py-0.5 rounded text-[11px] font-medium transition flex items-center gap-1 ${
+            showStations ? 'bg-[#122417] text-emerald-200 border border-[#1c3525]' : 'bg-[#07100a] text-slate-500'
           }`}
         >
-          Stations ({stations.length})
+          <span>📷 Cameras</span>
+          <span className="font-mono text-[9px] text-emerald-400">({stations.length})</span>
         </button>
 
         <button
-          onClick={() => setShowTigers(!showTigers)}
-          className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showTigers ? 'bg-[#122417] text-emerald-200 border border-[#1c3525]' : 'bg-[#07100a] text-emerald-600'
+          onClick={() => setShowDetections(!showDetections)}
+          className={`px-2 py-0.5 rounded text-[11px] font-medium transition flex items-center gap-1 ${
+            showDetections ? 'bg-[#2a2416] text-amber-300 border border-[#44381e]' : 'bg-[#07100a] text-slate-500'
           }`}
         >
-          Tigers ({tigers.length})
+          <span>🐅 Detections</span>
+          <span className="font-mono text-[9px] text-amber-400">({detections.length || tigers.length})</span>
+        </button>
+
+        <button
+          onClick={() => setShowPaths(!showPaths)}
+          className={`px-2 py-0.5 rounded text-[11px] font-medium transition flex items-center gap-1 ${
+            showPaths ? 'bg-[#1e293b] text-sky-300 border border-[#334155]' : 'bg-[#07100a] text-slate-500'
+          }`}
+        >
+          <span>━━ Paths</span>
+        </button>
+
+        <button
+          onClick={() => setShowRanges(!showRanges)}
+          className={`px-2 py-0.5 rounded text-[11px] font-medium transition flex items-center gap-1 ${
+            showRanges ? 'bg-[#2e1065] text-purple-300 border border-[#4c1d95]' : 'bg-[#07100a] text-slate-500'
+          }`}
+        >
+          <span>⭕ Ranges</span>
         </button>
 
         <button
           onClick={() => setShowAlerts(!showAlerts)}
           className={`px-2 py-0.5 rounded text-[11px] font-medium transition ${
-            showAlerts ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#07100a] text-emerald-600'
+            showAlerts ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-[#07100a] text-slate-500'
           }`}
         >
           Alerts
@@ -389,7 +572,6 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
             className={`px-2 py-0.5 rounded transition ${
               basemapType === 'osm' ? 'bg-emerald-800 text-white font-bold' : 'text-slate-400 hover:text-white'
             }`}
-            title="OpenStreetMap Standard (Streets & Natural Features)"
           >
             OSM
           </button>
@@ -398,7 +580,6 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
             className={`px-2 py-0.5 rounded transition ${
               basemapType === 'topo' ? 'bg-emerald-800 text-white font-bold' : 'text-slate-400 hover:text-white'
             }`}
-            title="OpenTopoMap (Topographic Contours & Elevation)"
           >
             Topo
           </button>
@@ -407,47 +588,56 @@ export const ReserveMap: React.FC<ReserveMapProps> = ({
             className={`px-2 py-0.5 rounded transition ${
               basemapType === 'satellite' ? 'bg-emerald-800 text-white font-bold' : 'text-slate-400 hover:text-white'
             }`}
-            title="Satellite Imagery (Aerial Forest Canopy)"
           >
             Satellite
           </button>
         </div>
 
-        <div className="pl-1 border-l border-[#1c3525]">
-          <select
-            value={selectedFilterTiger}
-            onChange={(e) => setSelectedFilterTiger(e.target.value)}
-            className="bg-[#07100a] border border-[#1c3525] text-emerald-200 text-[11px] rounded px-1.5 py-0.5 focus:outline-none"
-          >
-            <option value="all">All Tigers</option>
-            {tigers.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.tiger_code} ({t.callsign})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Tiger Selector Filter */}
+        {uniqueTigers.length > 0 && (
+          <div className="pl-1 border-l border-[#1c3525]">
+            <select
+              value={selectedFilterTiger}
+              onChange={(e) => setSelectedFilterTiger(e.target.value)}
+              className="bg-[#07100a] border border-[#1c3525] text-amber-300 text-[11px] rounded px-1.5 py-0.5 focus:outline-none font-mono"
+            >
+              <option value="all">All Tigers ({uniqueTigers.length})</option>
+              {uniqueTigers.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full flex-1" />
 
-      {/* Bottom Coordinates & Legend */}
-      <div className="absolute bottom-3 left-3 z-20 bg-[#0c1a11]/95 px-3 py-1.5 rounded border border-[#1c3525] flex items-center gap-3 text-[11px] text-emerald-200">
+      {/* Bottom Map Legend */}
+      <div className="absolute bottom-3 left-3 z-20 bg-[#0c1a11]/95 px-3 py-2 rounded border border-[#1c3525] shadow-2xl flex flex-wrap items-center gap-4 text-[11px] text-slate-200 backdrop-blur-sm">
         <div className="flex items-center gap-1.5">
+          <span className="text-sm">🐅</span>
+          <span className="font-medium text-amber-300">Tiger Detection</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm">📷</span>
+          <span className="font-medium text-emerald-300">Camera Station</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sky-400 font-bold font-mono">━━</span>
+          <span className="font-medium text-sky-300">Tiger Movement Path</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-purple-400 font-bold font-mono">⭕</span>
+          <span className="font-medium text-purple-300">Tiger Observed Range</span>
+        </div>
+        <div className="flex items-center gap-1.5 pl-2 border-l border-[#1c3525]">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span>Core</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          <span>Buffer</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-rose-600"></span>
-          <span>Alert</span>
-        </div>
-        <div className="text-emerald-400 pl-2 border-l border-[#1c3525] font-mono">
-          21.758° N, 79.314° E
+          <span className="text-[10px] text-slate-400">Core</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ml-1"></span>
+          <span className="text-[10px] text-slate-400">Buffer</span>
         </div>
       </div>
     </div>
